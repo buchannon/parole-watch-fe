@@ -23,7 +23,6 @@ export default function OffenderDetail() {
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900">{offender.display_name || offender.tdcj_number}</h1>
           <StatusBadge status={offender.status} />
-          <span className="text-sm text-gray-500">{offender.is_active ? 'Active' : 'Inactive'}</span>
         </div>
       </div>
 

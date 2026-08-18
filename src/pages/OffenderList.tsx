@@ -75,20 +75,6 @@ export default function OffenderList() {
     { key: 'status', header: 'Status', render: (offender) => <StatusBadge status={offender.status} /> },
     { key: 'eligibility', header: 'Parole eligibility', render: (offender) => formatDate(offender.parole_eligibility_date) },
     {
-      key: 'active',
-      header: 'Active',
-      render: (offender) => (
-        <span
-          className={cn(
-            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-            offender.is_active ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600',
-          )}
-        >
-          {offender.is_active ? 'Active' : 'Inactive'}
-        </span>
-      ),
-    },
-    {
       key: 'actions',
       header: '',
       render: (offender) => (
