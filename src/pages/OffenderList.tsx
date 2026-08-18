@@ -37,7 +37,6 @@ export default function OffenderList() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [status, setStatus] = useState<'' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN'>('')
-  const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
   const [sort, setSort] = useState<SortState>({ key: 'status', direction: 'asc' })
   const [showAdd, setShowAdd] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -57,10 +56,10 @@ export default function OffenderList() {
     () => ({
       q: debouncedSearch || undefined,
       status: status || undefined,
-      active: active === 'all' ? undefined : active,
+      active: 'true',
       ordering,
     }),
-    [debouncedSearch, status, active, ordering],
+    [debouncedSearch, status, ordering],
   )
 
   const { data: offenders, isLoading, isError, error } = useOffenders(filters)
@@ -140,16 +139,6 @@ export default function OffenderList() {
             </button>
           ))}
         </div>
-        <select
-          value={active}
-          onChange={(event) => setActive(event.target.value as 'all' | 'true' | 'false')}
-          aria-label="Filter by active state"
-          className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-        >
-          <option value="all">All offenders</option>
-          <option value="true">Active only</option>
-          <option value="false">Inactive only</option>
-        </select>
       </div>
 
       {errorMessage && <ErrorBanner message={errorMessage} onDismiss={() => setActionError(null)} />}
@@ -164,7 +153,7 @@ export default function OffenderList() {
           sort={sort}
           onSort={setSort}
           emptyMessage={
-            search || status || active !== 'all' ? 'No offenders match your filters.' : 'No offenders yet. Add one to start tracking.'
+            search || status ? 'No offenders match your filters.' : 'No offenders yet. Add one to start tracking.'
           }
         />
       )}
