@@ -11,14 +11,12 @@ vi.mock('../api/offenders', () => ({
   useOffender: vi.fn(),
   useOffenderStatuses: vi.fn(),
   useCreateOffender: vi.fn(),
-  useUpdateOffender: vi.fn(),
-  useDeleteOffender: vi.fn(),
+  useUnfollowOffender: vi.fn(),
 }))
 
 const mockUseOffenders = vi.mocked(offendersApi.useOffenders)
 const mockUseCreateOffender = vi.mocked(offendersApi.useCreateOffender)
-const mockUseUpdateOffender = vi.mocked(offendersApi.useUpdateOffender)
-const mockUseDeleteOffender = vi.mocked(offendersApi.useDeleteOffender)
+const mockUseUnfollowOffender = vi.mocked(offendersApi.useUnfollowOffender)
 
 const offenders: Offender[] = [
   {
@@ -85,8 +83,7 @@ describe('OffenderList', () => {
     vi.clearAllMocks()
     mockUseOffenders.mockReturnValue(mockQueryResult())
     mockUseCreateOffender.mockReturnValue(mockMutation())
-    mockUseUpdateOffender.mockReturnValue(mockMutation())
-    mockUseDeleteOffender.mockReturnValue(mockMutation())
+    mockUseUnfollowOffender.mockReturnValue(mockMutation())
   })
 
   it('renders offender rows with name, TDCJ number, and status badge', () => {

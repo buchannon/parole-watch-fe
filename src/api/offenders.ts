@@ -95,35 +95,10 @@ export function useCreateOffender() {
   })
 }
 
-export function useUpdateOffender() {
+export function useUnfollowOffender() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Partial<Offender> }) =>
-      api.patch<Offender>(`/offenders/${id}/`, patch).then((res) => res.data),
-    onMutate: async ({ id, patch }) => {
-      await queryClient.cancelQueries({ queryKey: offenderKeys.all })
-      const previous = queryClient.getQueriesData<Offender[]>({ queryKey: offenderKeys.all })
-      queryClient.setQueriesData<Offender[]>({ queryKey: offenderKeys.all }, (old) =>
-        old?.map((offender) => (offender.id === id ? { ...offender, ...patch } : offender)),
-      )
-      return { previous }
-    },
-    onError: (error, _variables, context) => {
-      logError('Failed to update offender', error)
-      context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, () => data))
-    },
-    onSuccess: () => {
-      logInfo('Offender updated')
-      queryClient.invalidateQueries({ queryKey: offenderKeys.all })
-      queryClient.invalidateQueries({ queryKey: ['offender'] })
-    },
-  })
-}
-
-export function useDeleteOffender() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => api.delete(`/offenders/${id}/`).then(() => id),
+    mutationFn: (id: string) => api.post(`/offenders/${id}/unfollow/`).then(() => id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: offenderKeys.all })
       const previous = queryClient.getQueriesData<Offender[]>({ queryKey: offenderKeys.all })
@@ -131,11 +106,11 @@ export function useDeleteOffender() {
       return { previous }
     },
     onError: (error, _id, context) => {
-      logError('Failed to delete offender', error)
+      logError('Failed to unfollow offender', error)
       context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, () => data))
     },
     onSuccess: (_data, id) => {
-      logInfo('Offender deleted')
+      logInfo('Offender unfollowed')
       queryClient.invalidateQueries({ queryKey: offenderKeys.all })
       queryClient.removeQueries({ queryKey: offenderKeys.detail(id) })
       queryClient.removeQueries({ queryKey: offenderKeys.statuses(id) })

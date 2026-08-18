@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDeleteOffender, useOffenders } from '../api/offenders'
+import { useOffenders, useUnfollowOffender } from '../api/offenders'
 import { DataTable, type Column } from '../components/DataTable'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { OffenderFormModal } from '../components/OffenderFormModal'
@@ -9,7 +9,6 @@ import { StatusBadge } from '../components/StatusBadge'
 import type { Offender, OffenderFilters } from '../types'
 import {
   buttonPrimaryClass,
-  buttonSmallDangerClass,
   buttonSmallSecondaryClass,
   cn,
   extractErrorMessage,
@@ -31,7 +30,6 @@ export default function OffenderList() {
   const [status, setStatus] = useState<'' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN'>('')
   const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
   const [showAdd, setShowAdd] = useState(false)
-  const [editing, setEditing] = useState<Offender | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -49,13 +47,13 @@ export default function OffenderList() {
   )
 
   const { data: offenders, isLoading, isError, error } = useOffenders(filters)
-  const deleteOffender = useDeleteOffender()
+  const unfollowOffender = useUnfollowOffender()
 
-  const handleDelete = (offender: Offender) => {
-    if (!window.confirm(`Delete offender ${offender.display_name || offender.tdcj_number}? This cannot be undone.`)) return
+  const handleUnfollow = (offender: Offender) => {
+    if (!window.confirm(`Unfollow ${offender.display_name || offender.tdcj_number}? You will stop tracking this offender.`)) return
     setActionError(null)
-    deleteOffender.mutate(offender.id, {
-      onError: (err) => setActionError(extractErrorMessage(err, 'Failed to delete offender')),
+    unfollowOffender.mutate(offender.id, {
+      onError: (err) => setActionError(extractErrorMessage(err, 'Failed to unfollow offender')),
     })
   }
 
@@ -95,11 +93,8 @@ export default function OffenderList() {
       header: '',
       render: (offender) => (
         <div className="flex gap-2">
-          <button type="button" onClick={() => setEditing(offender)} className={buttonSmallSecondaryClass}>
-            Edit
-          </button>
-          <button type="button" onClick={() => handleDelete(offender)} className={buttonSmallDangerClass}>
-            Delete
+          <button type="button" onClick={() => handleUnfollow(offender)} className={buttonSmallSecondaryClass}>
+            Unfollow
           </button>
         </div>
       ),
@@ -169,7 +164,6 @@ export default function OffenderList() {
       )}
 
       {showAdd && <OffenderFormModal onClose={() => setShowAdd(false)} />}
-      {editing && <OffenderFormModal offender={editing} onClose={() => setEditing(null)} />}
     </div>
   )
 }

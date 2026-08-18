@@ -32,7 +32,7 @@ src/
     client.ts         axios instance, baseURL '/api', CSRF header, 401 handling
     logger.ts         logInfo / logWarn / logError helpers
     auth.ts           login / logout / me requests
-    offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / update / delete
+    offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
     subscribers.ts    useSubscribers / create / update / delete
   auth/             AuthContext (user state, login/logout/me), RequireAuth + RedirectIfAuthed guards
   components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, forms
@@ -51,7 +51,7 @@ src/
   `csrftoken` cookie) on unsafe methods and routes 401 responses to an
   `UnauthorizedWatcher` that bounces to `/login`.
 - Server state lives in React Query hooks under `src/api/`. Optimistic updates for
-  create/edit/delete are implemented in the mutations there, with rollback on error.
+  create/unfollow are implemented in the mutations there, with rollback on error.
 - Auth is cookie-based (httpOnly JWT). Tokens are never read/written in JS.
 - Logging: use `src/api/logger.ts` — INFO for login/logout + CRUD mutations, WARN/ERROR
   for failed requests and auth failures. No raw `console.*` in app code.
@@ -77,9 +77,8 @@ login). Done automatically by the axios request interceptor in `src/api/client.t
 | ------ | ------------------------------- | ----- |
 | GET    | `/api/offenders/`               | array (no pagination wrapper); `?q=` (name/tdcj/sid), `?status=IN_REVIEW|NOT_IN_REVIEW|UNKNOWN`, `?active=true|false` |
 | POST   | `/api/offenders/`               | `{tdcj_number}` required; API resolves sid/profile server-side via TDCJ search; 400 on duplicate/invalid |
-| GET    | `/api/offenders/{id}/`          | detail |
-| PATCH  | `/api/offenders/{id}/`          | edit editable fields (`tdcj_number` is read-only) |
-| DELETE | `/api/offenders/{id}/`          | hard delete |
+| GET    | `/api/offenders/{id}/`          | detail (read-only) |
+| POST   | `/api/offenders/{id}/unfollow/` | removes only the caller's group link; never deletes offender data |
 | GET    | `/api/offenders/{id}/statuses/` | status history, newest first; items `{id, status, created, edited}` |
 
 Offender payload fields mirror `src/types.ts`. `status` is computed by the API from the
