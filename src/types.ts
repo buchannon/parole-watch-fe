@@ -3,6 +3,8 @@ export type OffenderStatus = 'In Parole Review' | 'Not in Parole Review' | 'Unkn
 export interface AuthUser {
   username: string
   email: string
+  name: string
+  groups: string[]
 }
 
 export interface Offender {
@@ -30,14 +32,6 @@ export interface OffenderStatusHistoryItem {
   status: OffenderStatus
   created: string
   edited: string
-}
-
-export interface Subscriber {
-  id: string
-  name: string
-  email: string
-  is_active: boolean
-  created: string
 }
 
 export interface OffenderFilters {

@@ -26,8 +26,8 @@ export default function Layout() {
             <NavLink to="/offenders" className={navLinkClass} end>
               Offenders
             </NavLink>
-            <NavLink to="/subscribers" className={navLinkClass}>
-              Subscribers
+            <NavLink to="/settings" className={navLinkClass}>
+              Settings
             </NavLink>
           </div>
           <div className="flex items-center gap-3">

@@ -1,9 +1,9 @@
 # Parole Watch UI
 
 Front-end for **Parole Watch**, an offender status-tracking tool. Users log in, manage a
-list of Texas parolees (offenders), and maintain an email notification subscriber list.
-A separate Django repo (`parole-watch-api`) provides the REST API; this repo is the React
-SPA that talks to it.
+list of Texas parolees (offenders) within their group, and view a read-only Settings page
+(group name + current user). A separate Django repo (`parole-watch-api`) provides the REST
+API; this repo is the React SPA that talks to it.
 
 ## Stack
 
@@ -33,10 +33,9 @@ src/
     logger.ts         logInfo / logWarn / logError helpers
     auth.ts           login / logout / me requests
     offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
-    subscribers.ts    useSubscribers / create / update / delete
   auth/             AuthContext (user state, login/logout/me), RequireAuth + RedirectIfAuthed guards
   components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, forms
-  pages/            Login, OffenderList, OffenderDetail, Subscribers, NotFound
+  pages/            Login, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
   types.ts          TS interfaces mirroring the API payloads
   utils.ts          classnames helper, date/status formatters, error extraction
@@ -64,10 +63,13 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 ### Auth
 | Method | Path                  | Body                    | Notes |
 | ------ | --------------------- | ----------------------- | ----- |
-| POST   | `/api/auth/login/`    | `{username, password}`  | sets access+refresh httpOnly cookies; returns `{username, email}`; 401 on bad creds |
+| POST   | `/api/auth/login/`    | `{username, password}`  | sets access+refresh httpOnly cookies; returns `{username, email, name, groups: string[]}`; 401 on bad creds |
 | POST   | `/api/auth/logout/`   |                         | clears cookies |
 | POST   | `/api/auth/refresh/`  |                         | refreshes access cookie from refresh cookie |
-| GET    | `/api/auth/me/`       |                         | returns `{username, email}`; 401 if not authenticated |
+| GET    | `/api/auth/me/`       |                         | returns `{username, email, name, groups: string[]}`; 401 if not authenticated |
+
+`name` is the user's full name (falls back to username). `groups` are the current user's
+group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
 
 CSRF: mutations require an `X-CSRFToken` header taken from the `csrftoken` cookie (set at
 login). Done automatically by the axios request interceptor in `src/api/client.ts`.
@@ -85,14 +87,6 @@ Offender payload fields mirror `src/types.ts`. `status` is computed by the API f
 latest `OffenderStatus`; labels map `IN_REVIEW → "In Parole Review"`,
 `NOT_IN_REVIEW → "Not in Parole Review"`, `UNKNOWN → "Unknown"`. Dates are ISO
 `YYYY-MM-DD`; raw HTML detail/review fields are not exposed.
-
-### Subscribers
-| Method | Path                      | Notes |
-| ------ | ------------------------- | ----- |
-| GET    | `/api/subscribers/`       | array of `{id, name, email, is_active, created}` |
-| POST   | `/api/subscribers/`       | `{name?, email, is_active?}`; 400 on duplicate email |
-| PATCH  | `/api/subscribers/{id}/`  | toggle is_active / rename / change email |
-| DELETE | `/api/subscribers/{id}/`  |       |
 
 ### Errors
 DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use

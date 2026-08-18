@@ -24,7 +24,7 @@ function renderRoute(value: AuthContextValue) {
 
 describe('RequireAuth', () => {
   it('renders children when authenticated', () => {
-    renderRoute(authValue({ username: 'admin', email: 'admin@example.com' }))
+    renderRoute(authValue({ username: 'admin', email: 'admin@example.com', name: 'Admin', groups: ['Test Group'] }))
     expect(screen.getByText('protected-content')).toBeInTheDocument()
     expect(screen.queryByText('login-page')).not.toBeInTheDocument()
   })
