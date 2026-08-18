@@ -36,10 +36,11 @@ api.interceptors.response.use(
     const status = error.response?.status
     const url = error.config?.url
     const isLoginRequest = Boolean(url?.endsWith('/auth/login/'))
-    if (status === 401 && !isLoginRequest) {
+    const isMeRequest = Boolean(url?.endsWith('/auth/me/'))
+    if (status === 401 && !isLoginRequest && !isMeRequest) {
       logError('Unauthorized API request', url ?? '')
       unauthorizedHandler?.()
-    } else if (status !== undefined && status >= 400) {
+    } else if (status !== undefined && status >= 400 && !isMeRequest) {
       logWarn('API request failed', url ?? '', status)
     }
     return Promise.reject(error)
