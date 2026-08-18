@@ -1,10 +1,15 @@
 export type OffenderStatus = 'In Parole Review' | 'Not in Parole Review' | 'Unknown'
 
+export interface UserSettings {
+  receive_email_alerts_for_offender_status_changes: boolean
+}
+
 export interface AuthUser {
   username: string
   email: string
   name: string
   groups: string[]
+  settings: UserSettings
 }
 
 export interface Offender {

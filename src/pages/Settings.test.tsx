@@ -1,0 +1,96 @@
+import { useState } from 'react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as authApi from '../api/auth'
+import { AuthContext, type AuthContextValue } from '../auth/AuthContext'
+import type { AuthUser } from '../types'
+import Settings from './Settings'
+
+vi.mock('../api/auth', () => ({
+  loginRequest: vi.fn(),
+  logoutRequest: vi.fn(),
+  meRequest: vi.fn(),
+  useUpdateSettings: vi.fn(),
+}))
+
+const mockUseUpdateSettings = vi.mocked(authApi.useUpdateSettings)
+
+const initialUser: AuthUser = {
+  username: 'admin',
+  email: 'admin@example.com',
+  name: 'Admin',
+  groups: ['Test Group'],
+  settings: { receive_email_alerts_for_offender_status_changes: true },
+}
+
+function renderSettings(user: AuthUser = initialUser) {
+  const mutate = vi.fn()
+
+  function Harness() {
+    const [currentUser, setCurrentUser] = useState<AuthUser | null>(user)
+    const value: AuthContextValue = {
+      user: currentUser,
+      isAuthenticated: Boolean(currentUser),
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      setUser: setCurrentUser,
+    }
+    return (
+      <AuthContext.Provider value={value}>
+        <Settings />
+      </AuthContext.Provider>
+    )
+  }
+
+  mockUseUpdateSettings.mockReturnValue({
+    mutate,
+    mutateAsync: vi.fn(),
+    isPending: false,
+    error: null,
+  } as any)
+
+  render(<Harness />)
+  return { mutate }
+}
+
+describe('Settings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('renders account details and the email alerts toggle', () => {
+    renderSettings()
+    expect(screen.getByText('Admin')).toBeInTheDocument()
+    expect(screen.getByText('admin@example.com')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: /receive email alerts/i })).toBeInTheDocument()
+  })
+
+  it('reflects the enabled setting and fires the mutation when toggled off', () => {
+    const { mutate } = renderSettings()
+    const toggle = screen.getByRole('switch', { name: /receive email alerts/i })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    fireEvent.click(toggle)
+
+    expect(mutate).toHaveBeenCalledWith(
+      { receive_email_alerts_for_offender_status_changes: false },
+      expect.anything(),
+    )
+    expect(screen.getByRole('switch', { name: /receive email alerts/i })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
+  })
+
+  it('reflects a disabled setting on load', () => {
+    renderSettings({
+      ...initialUser,
+      settings: { receive_email_alerts_for_offender_status_changes: false },
+    })
+    expect(screen.getByRole('switch', { name: /receive email alerts/i })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
+  })
+})
