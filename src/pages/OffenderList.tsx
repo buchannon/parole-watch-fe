@@ -1,0 +1,175 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useDeleteOffender, useOffenders } from '../api/offenders'
+import { DataTable, type Column } from '../components/DataTable'
+import { ErrorBanner } from '../components/ErrorBanner'
+import { OffenderFormModal } from '../components/OffenderFormModal'
+import { Spinner } from '../components/Spinner'
+import { StatusBadge } from '../components/StatusBadge'
+import type { Offender, OffenderFilters } from '../types'
+import {
+  buttonPrimaryClass,
+  buttonSmallDangerClass,
+  buttonSmallSecondaryClass,
+  cn,
+  extractErrorMessage,
+  formatDate,
+  inputClass,
+} from '../utils'
+
+const STATUS_CHIPS: Array<{ value: '' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN'; label: string }> = [
+  { value: '', label: 'All' },
+  { value: 'IN_REVIEW', label: 'In Review' },
+  { value: 'NOT_IN_REVIEW', label: 'Not in Review' },
+  { value: 'UNKNOWN', label: 'Unknown' },
+]
+
+export default function OffenderList() {
+  const navigate = useNavigate()
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [status, setStatus] = useState<'' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN'>('')
+  const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
+  const [showAdd, setShowAdd] = useState(false)
+  const [editing, setEditing] = useState<Offender | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 300)
+    return () => window.clearTimeout(timer)
+  }, [search])
+
+  const filters = useMemo<OffenderFilters>(
+    () => ({
+      q: debouncedSearch || undefined,
+      status: status || undefined,
+      active: active === 'all' ? undefined : active,
+    }),
+    [debouncedSearch, status, active],
+  )
+
+  const { data: offenders, isLoading, isError, error } = useOffenders(filters)
+  const deleteOffender = useDeleteOffender()
+
+  const handleDelete = (offender: Offender) => {
+    if (!window.confirm(`Delete offender ${offender.display_name || offender.tdcj_number}? This cannot be undone.`)) return
+    setActionError(null)
+    deleteOffender.mutate(offender.id, {
+      onError: (err) => setActionError(extractErrorMessage(err, 'Failed to delete offender')),
+    })
+  }
+
+  const columns: Column<Offender>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: (offender) => (
+        <button
+          type="button"
+          onClick={() => navigate(`/offenders/${offender.id}`)}
+          className="font-medium text-blue-600 hover:underline"
+        >
+          {offender.display_name || '—'}
+        </button>
+      ),
+    },
+    { key: 'tdcj', header: 'TDCJ #', render: (offender) => <span className="font-mono">{offender.tdcj_number}</span> },
+    { key: 'status', header: 'Status', render: (offender) => <StatusBadge status={offender.status} /> },
+    { key: 'eligibility', header: 'Parole eligibility', render: (offender) => formatDate(offender.parole_eligibility_date) },
+    {
+      key: 'active',
+      header: 'Active',
+      render: (offender) => (
+        <span
+          className={cn(
+            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+            offender.is_active ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600',
+          )}
+        >
+          {offender.is_active ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (offender) => (
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setEditing(offender)} className={buttonSmallSecondaryClass}>
+            Edit
+          </button>
+          <button type="button" onClick={() => handleDelete(offender)} className={buttonSmallDangerClass}>
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ]
+
+  const errorMessage = isError ? extractErrorMessage(error, 'Failed to load offenders') : actionError
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-900">Offenders</h1>
+        <button type="button" onClick={() => setShowAdd(true)} className={buttonPrimaryClass}>
+          Add offender
+        </button>
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search name, TDCJ # or SID…"
+          aria-label="Search offenders"
+          className={cn(inputClass, 'max-w-xs')}
+        />
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by status">
+          {STATUS_CHIPS.map((chip) => (
+            <button
+              key={chip.value || 'all'}
+              type="button"
+              onClick={() => setStatus(chip.value)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-xs font-medium',
+                status === chip.value ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50',
+              )}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+        <select
+          value={active}
+          onChange={(event) => setActive(event.target.value as 'all' | 'true' | 'false')}
+          aria-label="Filter by active state"
+          className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+        >
+          <option value="all">All offenders</option>
+          <option value="true">Active only</option>
+          <option value="false">Inactive only</option>
+        </select>
+      </div>
+
+      {errorMessage && <ErrorBanner message={errorMessage} onDismiss={() => setActionError(null)} />}
+
+      {isLoading ? (
+        <Spinner label="Loading offenders…" />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={offenders ?? []}
+          getRowKey={(offender) => offender.id}
+          emptyMessage={
+            search || status || active !== 'all' ? 'No offenders match your filters.' : 'No offenders yet. Add one to start tracking.'
+          }
+        />
+      )}
+
+      {showAdd && <OffenderFormModal onClose={() => setShowAdd(false)} />}
+      {editing && <OffenderFormModal offender={editing} onClose={() => setEditing(null)} />}
+    </div>
+  )
+}
