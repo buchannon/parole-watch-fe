@@ -73,10 +73,18 @@ Create or merge the following into the docroot `.htaccess` (at the same level as
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
 
+    # Let missing favicon files 404 so browsers fall back to <link rel=icon> (/favicon.svg)
+    RewriteCond %{REQUEST_URI} !^/favicon\.(ico|svg|png|gif|webp)$ [NC]
+
     # Rewrite every non-/api request to index.html for SPA history routing
     RewriteRule !^api index.html [L]
 </IfModule>
 ```
+
+Do **not** remove the favicon `RewriteCond`. Without it, `/favicon.ico` (which has no real file)
+gets rewritten to `index.html` and returns `200 text/html`; Chrome's default-favicon probe then
+fails to decode it and shows a generic globe icon instead of `/favicon.svg` (works in a cached
+tab, breaks on cold/incognito loads).
 
 Why this works:
 

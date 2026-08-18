@@ -111,4 +111,7 @@ build lives there at the root (`index.html`, `assets/`, `favicon.svg`), alongsid
 deployed Django repo. The API is mounted at `/api` only via the CloudLinux Passenger
 config in `api/.htaccess` (`PassengerBaseURI "/api"`) — never edit that file. Upload the
 build to the docroot **root**; an earlier deploy wrongly placed it inside the Django
-package folder `parole_watch/`, which caused a directory listing instead of the SPA.
+package folder `parole_watch/`, which caused a directory listing instead of the SPA. The
+docroot `.htaccess` SPA rewrite must keep the `favicon.*` exclusion (see deploy doc) so
+`/favicon.ico` 404s instead of returning `index.html`; otherwise Chrome shows a generic
+globe icon on cold/incognito loads instead of `/favicon.svg`.
