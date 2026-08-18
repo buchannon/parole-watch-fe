@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOffenders, useUnfollowOffender } from '../api/offenders'
-import { DataTable, type Column } from '../components/DataTable'
+import { DataTable, type Column, type SortState } from '../components/DataTable'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { OffenderFormModal } from '../components/OffenderFormModal'
 import { Spinner } from '../components/Spinner'
@@ -23,12 +23,22 @@ const STATUS_CHIPS: Array<{ value: '' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN
   { value: 'UNKNOWN', label: 'Unknown' },
 ]
 
+// Maps a table column key to the API `?ordering=` field. Only columns listed
+// here are sortable.
+const SORT_FIELDS: Record<string, string> = {
+  name: 'display_name',
+  tdcj: 'tdcj_number',
+  status: 'status',
+  eligibility: 'parole_eligibility_date',
+}
+
 export default function OffenderList() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [status, setStatus] = useState<'' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN'>('')
   const [active, setActive] = useState<'all' | 'true' | 'false'>('all')
+  const [sort, setSort] = useState<SortState>({ key: 'status', direction: 'asc' })
   const [showAdd, setShowAdd] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -37,13 +47,20 @@ export default function OffenderList() {
     return () => window.clearTimeout(timer)
   }, [search])
 
+  const ordering = useMemo(() => {
+    const field = SORT_FIELDS[sort.key]
+    if (!field) return undefined
+    return sort.direction === 'desc' ? `-${field}` : field
+  }, [sort])
+
   const filters = useMemo<OffenderFilters>(
     () => ({
       q: debouncedSearch || undefined,
       status: status || undefined,
       active: active === 'all' ? undefined : active,
+      ordering,
     }),
-    [debouncedSearch, status, active],
+    [debouncedSearch, status, active, ordering],
   )
 
   const { data: offenders, isLoading, isError, error } = useOffenders(filters)
@@ -61,6 +78,7 @@ export default function OffenderList() {
     {
       key: 'name',
       header: 'Name',
+      sortable: true,
       render: (offender) => (
         <button
           type="button"
@@ -71,9 +89,9 @@ export default function OffenderList() {
         </button>
       ),
     },
-    { key: 'tdcj', header: 'TDCJ #', render: (offender) => <span className="font-mono">{offender.tdcj_number}</span> },
-    { key: 'status', header: 'Status', render: (offender) => <StatusBadge status={offender.status} /> },
-    { key: 'eligibility', header: 'Parole eligibility', render: (offender) => formatDate(offender.parole_eligibility_date) },
+    { key: 'tdcj', header: 'TDCJ #', sortable: true, render: (offender) => <span className="font-mono">{offender.tdcj_number}</span> },
+    { key: 'status', header: 'Status', sortable: true, render: (offender) => <StatusBadge status={offender.status} /> },
+    { key: 'eligibility', header: 'Parole eligibility', sortable: true, render: (offender) => formatDate(offender.parole_eligibility_date) },
     {
       key: 'actions',
       header: '',
@@ -143,6 +161,8 @@ export default function OffenderList() {
           columns={columns}
           rows={offenders ?? []}
           getRowKey={(offender) => offender.id}
+          sort={sort}
+          onSort={setSort}
           emptyMessage={
             search || status || active !== 'all' ? 'No offenders match your filters.' : 'No offenders yet. Add one to start tracking.'
           }

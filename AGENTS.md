@@ -51,6 +51,12 @@ src/
   `UnauthorizedWatcher` that bounces to `/login`.
 - Server state lives in React Query hooks under `src/api/`. Optimistic updates for
   create/unfollow are implemented in the mutations there, with rollback on error.
+- `DataTable` supports server-side sorting: sortable columns set `sortable: true`
+  and the owning page holds a `SortState` (`{key, direction}`), derives an
+  `?ordering=` string, and passes it through `OffenderFilters`. The Offender
+  table defaults to `status asc` so **In Parole Review offenders appear at the
+  top** (the API applies the same default); the tie-break is display name.
+  Header clicks toggle asc/desc (the active column shows ▲/▼ + `aria-sort`).
 - Auth is cookie-based (httpOnly JWT). Tokens are never read/written in JS.
 - Logging: use `src/api/logger.ts` — INFO for login/logout + CRUD mutations, WARN/ERROR
   for failed requests and auth failures. No raw `console.*` in app code.
@@ -77,7 +83,7 @@ login). Done automatically by the axios request interceptor in `src/api/client.t
 ### Offenders
 | Method | Path                            | Notes |
 | ------ | ------------------------------- | ----- |
-| GET    | `/api/offenders/`               | array (no pagination wrapper); `?q=` (name/tdcj/sid), `?status=IN_REVIEW|NOT_IN_REVIEW|UNKNOWN`, `?active=true|false` |
+| GET    | `/api/offenders/`               | array (no pagination wrapper); `?q=` (name/tdcj/sid), `?status=IN_REVIEW|NOT_IN_REVIEW|UNKNOWN`, `?active=true|false`, `?ordering=` (comma-separated, `-` prefix = desc; fields: `display_name`, `tdcj_number`, `parole_eligibility_date`, `status`) |
 | POST   | `/api/offenders/`               | `{tdcj_number}` required; API resolves sid/profile server-side via TDCJ search; 400 on duplicate/invalid |
 | GET    | `/api/offenders/{id}/`          | detail (read-only) |
 | POST   | `/api/offenders/{id}/unfollow/` | removes only the caller's group link; never deletes offender data |

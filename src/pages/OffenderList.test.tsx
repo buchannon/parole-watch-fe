@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as offendersApi from '../api/offenders'
@@ -106,5 +106,24 @@ describe('OffenderList', () => {
     mockUseOffenders.mockReturnValue(mockQueryResult({ data: [] }))
     renderList()
     expect(screen.getByText('No offenders yet. Add one to start tracking.')).toBeInTheDocument()
+  })
+
+  it('sorts by status ascending by default so in-parole-review offenders are on top', () => {
+    renderList()
+    expect(mockUseOffenders.mock.calls[0][0]).toMatchObject({ ordering: 'status' })
+    expect(screen.getByRole('columnheader', { name: /Status/i })).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('toggles between sortable columns on header clicks', () => {
+    renderList()
+    const nameHeader = screen.getByRole('button', { name: /Name/i })
+    fireEvent.click(nameHeader)
+    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'display_name' }))
+    fireEvent.click(nameHeader)
+    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: '-display_name' }))
+    fireEvent.click(screen.getByRole('button', { name: /TDCJ #/i }))
+    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'tdcj_number' }))
+    fireEvent.click(screen.getByRole('button', { name: /Parole eligibility/i }))
+    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'parole_eligibility_date' }))
   })
 })

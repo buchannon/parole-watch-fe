@@ -43,4 +43,5 @@ export interface OffenderFilters {
   q?: string
   status?: string
   active?: string
+  ordering?: string
 }

@@ -15,6 +15,7 @@ function cleanParams(filters: OffenderFilters): Record<string, string> {
   if (filters.q) params.q = filters.q
   if (filters.status) params.status = filters.status
   if (filters.active) params.active = filters.active
+  if (filters.ordering) params.ordering = filters.ordering
   return params
 }
 
