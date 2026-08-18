@@ -102,3 +102,13 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 ## Deploy
 
 Documented in `.opencode/commands/parole-watch-ui-deploy.md`. Manual only — never run.
+
+**⚠️ Never touch `public_html/`** — it is the WordPress blog at `https://jshowers.com/`.
+The real docroot for the parole-watch subdomain is **not** `public_html`. It is the
+subdomain's own folder, `/parole-watch.jshowers.com/` on the FTP server (SSH:
+`ssh parole-watch-server` → `/home/jshomoek/parole-watch.jshowers.com/`). The front-end
+build lives there at the root (`index.html`, `assets/`, `favicon.svg`), alongside the
+deployed Django repo. The API is mounted at `/api` only via the CloudLinux Passenger
+config in `api/.htaccess` (`PassengerBaseURI "/api"`) — never edit that file. Upload the
+build to the docroot **root**; an earlier deploy wrongly placed it inside the Django
+package folder `parole_watch/`, which caused a directory listing instead of the SPA.
