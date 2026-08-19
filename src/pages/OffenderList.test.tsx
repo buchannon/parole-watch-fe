@@ -144,7 +144,7 @@ describe('OffenderList', () => {
   it('shows the search box and add-offender button', () => {
     renderList()
     expect(screen.getByLabelText('Search offenders')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Add offender' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Follow new offender' })).toBeInTheDocument()
   })
 
   it('shows an empty state when there are no offenders', () => {

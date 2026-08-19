@@ -112,7 +112,7 @@ export default function OffenderList() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Offenders</h1>
         <button type="button" onClick={() => setShowAdd(true)} className={buttonPrimaryClass}>
-          Add offender
+          Follow new offender
         </button>
       </div>
 
