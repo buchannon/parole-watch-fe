@@ -20,7 +20,10 @@ const initialUser: AuthUser = {
   email: 'admin@example.com',
   name: 'Admin',
   groups: ['Test Group'],
-  settings: { receive_email_alerts_for_offender_status_changes: true },
+  settings: {
+    receive_email_alerts_for_offender_status_changes: true,
+    receive_offender_summary_report: true,
+  },
 }
 
 function renderSettings(user: AuthUser = initialUser) {
@@ -59,11 +62,12 @@ describe('Settings', () => {
     vi.clearAllMocks()
   })
 
-  it('renders account details and the email alerts toggle', () => {
+  it('renders account details and the email alert toggles', () => {
     renderSettings()
     expect(screen.getByText('Admin')).toBeInTheDocument()
     expect(screen.getByText('admin@example.com')).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: /receive email alerts/i })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: /weekly offender summary report/i })).toBeInTheDocument()
   })
 
   it('reflects the enabled setting and fires the mutation when toggled off', () => {
@@ -83,12 +87,36 @@ describe('Settings', () => {
     )
   })
 
-  it('reflects a disabled setting on load', () => {
+  it('reflects the enabled summary report setting and fires the mutation when toggled off', () => {
+    const { mutate } = renderSettings()
+    const toggle = screen.getByRole('switch', { name: /weekly offender summary report/i })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+    fireEvent.click(toggle)
+
+    expect(mutate).toHaveBeenCalledWith(
+      { receive_offender_summary_report: false },
+      expect.anything(),
+    )
+    expect(screen.getByRole('switch', { name: /weekly offender summary report/i })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
+  })
+
+  it('reflects disabled settings on load', () => {
     renderSettings({
       ...initialUser,
-      settings: { receive_email_alerts_for_offender_status_changes: false },
+      settings: {
+        receive_email_alerts_for_offender_status_changes: false,
+        receive_offender_summary_report: false,
+      },
     })
     expect(screen.getByRole('switch', { name: /receive email alerts/i })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    )
+    expect(screen.getByRole('switch', { name: /weekly offender summary report/i })).toHaveAttribute(
       'aria-checked',
       'false',
     )

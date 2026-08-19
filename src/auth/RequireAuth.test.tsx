@@ -30,7 +30,10 @@ describe('RequireAuth', () => {
         email: 'admin@example.com',
         name: 'Admin',
         groups: ['Test Group'],
-        settings: { receive_email_alerts_for_offender_status_changes: true },
+        settings: {
+          receive_email_alerts_for_offender_status_changes: true,
+          receive_offender_summary_report: true,
+        },
       }),
     )
     expect(screen.getByText('protected-content')).toBeInTheDocument()

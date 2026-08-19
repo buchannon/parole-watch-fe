@@ -73,9 +73,16 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 | POST   | `/api/auth/logout/`   |                         | clears cookies |
 | POST   | `/api/auth/refresh/`  |                         | refreshes access cookie from refresh cookie |
 | GET    | `/api/auth/me/`       |                         | returns `{username, email, name, groups: string[]}`; 401 if not authenticated |
+| GET    | `/api/auth/settings/` |                         | returns `UserSettings`; 401 if not authenticated |
+| PATCH  | `/api/auth/settings/` | partial `UserSettings`  | values must be booleans; returns the full updated `UserSettings` |
 
 `name` is the user's full name (falls back to username). `groups` are the current user's
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
+
+`settings` is `{receive_email_alerts_for_offender_status_changes: boolean,
+receive_offender_summary_report: boolean}` (both default true) and is included in the
+login/me payloads too. PATCH is partial — send only the changed key. The two toggles on the
+Settings page are independent; toggling either only affects that setting.
 
 CSRF: mutations require an `X-CSRFToken` header taken from the `csrftoken` cookie (set at
 login). Done automatically by the axios request interceptor in `src/api/client.ts`.
@@ -104,6 +111,9 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   renders children when authenticated.
 - `src/pages/OffenderList.test.tsx` — smoke test: mocked offender hooks render the table,
   status badges, search box, and empty state.
+- `src/pages/Settings.test.tsx` — renders account details and both email-alert toggles
+  (status-change alerts + weekly summary report); each toggle reflects its setting and
+  fires a partial PATCH mutation when flipped.
 
 ## Deploy
 

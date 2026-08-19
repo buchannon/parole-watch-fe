@@ -2,6 +2,7 @@ export type OffenderStatus = 'In Parole Review' | 'Not in Parole Review' | 'Unkn
 
 export interface UserSettings {
   receive_email_alerts_for_offender_status_changes: boolean
+  receive_offender_summary_report: boolean
 }
 
 export interface AuthUser {

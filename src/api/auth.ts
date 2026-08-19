@@ -22,10 +22,10 @@ export function useUpdateSettings() {
     mutationFn: (settings: Partial<UserSettings>) =>
       api.patch<UserSettings>('/auth/settings/', settings).then((res) => res.data),
     onSuccess: () => {
-      logInfo('Email alert setting updated')
+      logInfo('Settings updated')
     },
     onError: (error) => {
-      logWarn('Failed to update email alert setting', error)
+      logWarn('Failed to update settings', error)
     },
   })
 }
