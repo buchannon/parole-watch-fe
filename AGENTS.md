@@ -109,7 +109,17 @@ first, then In Parole Review, Not in Parole Review, Unknown.
 `next_parole_review_date` is always the 1st of the month (the day is meaningless) and
 null when unknown — the UI renders it month/year only via `formatMonthYear()` (e.g.
 `2027-03-01 → "03/2027"`) and `—` when null. It appears as the "Next review" sortable
-column on the offender table and in a prominent banner at the top of the detail view.
+column on the offender table, as a "Next parole review" row in the detail fields
+table (always shown, regardless of status), and in a banner at the top of the detail
+view. That banner uses the same background/border/text color as the offender's
+current status (see StatusBadge palette below) and is **not rendered at all when the
+status is Approved**. When the status is In Parole Review, the banner shows just the
+text "In Parole Review" (no date); otherwise it shows "Next parole review" plus the
+month/year value.
+On the detail view, a "Links" section sits between the status banners and the detail
+fields grid. It shows two external links that open in a new tab: "View profile"
+(`profile_url`) and "View parole details" (`parole_details_url`); each renders `—`
+when its URL is empty.
 
 Status badges use the daily summary-report email color scheme: Approved green
 (`bg-green-100 text-green-800`), In Parole Review blue (`bg-blue-100
