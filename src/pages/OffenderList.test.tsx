@@ -67,6 +67,30 @@ const offenders: Offender[] = [
     last_parole_decision_note: '',
     denial_reasons: '',
   },
+  {
+    id: '3',
+    display_name: 'Alicia Ruiz',
+    tdcj_number: '05678901',
+    status: 'Approved',
+    parole_eligibility_date: null,
+    next_parole_review_date: null,
+    is_active: true,
+    race: '',
+    gender: '',
+    age: null,
+    profile_url: '',
+    date_last_scraped: null,
+    sid_number: 'SID3',
+    max_sentence_date: null,
+    current_facility: '',
+    projected_release_date: null,
+    parole_details_url: '',
+    visitation_eligible: '',
+    last_parole_decision: 'approved',
+    last_parole_decision_date: null,
+    last_parole_decision_note: '',
+    denial_reasons: '',
+  },
 ]
 
 function mockQueryResult(overrides: Record<string, unknown> = {}): any {
@@ -100,15 +124,20 @@ describe('OffenderList', () => {
     renderList()
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()
     expect(screen.getByText('John Smith')).toBeInTheDocument()
+    expect(screen.getByText('Alicia Ruiz')).toBeInTheDocument()
     expect(screen.getByText('00637060')).toBeInTheDocument()
     expect(screen.getByText('In Parole Review')).toBeInTheDocument()
     expect(screen.getByText('Not in Parole Review')).toBeInTheDocument()
+    expect(screen.getByText('Alicia Ruiz')).toBeInTheDocument()
+    expect(
+      screen.getByText('Approved', { selector: '.bg-green-100.text-green-800' }),
+    ).toHaveTextContent('Approved')
   })
 
   it('renders the next parole review date as month/year and a dash when unknown', () => {
     renderList()
     expect(screen.getByText('03/2027')).toBeInTheDocument()
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByRole('columnheader', { name: /Next review/i })).toBeInTheDocument()
   })
 
@@ -124,7 +153,7 @@ describe('OffenderList', () => {
     expect(screen.getByText('No offenders yet. Add one to start tracking.')).toBeInTheDocument()
   })
 
-  it('sorts by status ascending by default so in-parole-review offenders are on top', () => {
+  it('sorts by status ascending by default so approved offenders are on top', () => {
     renderList()
     expect(mockUseOffenders.mock.calls[0][0]).toMatchObject({ ordering: 'status' })
     expect(screen.getByRole('columnheader', { name: /Status/i })).toHaveAttribute('aria-sort', 'ascending')

@@ -54,8 +54,8 @@ src/
 - `DataTable` supports server-side sorting: sortable columns set `sortable: true`
   and the owning page holds a `SortState` (`{key, direction}`), derives an
   `?ordering=` string, and passes it through `OffenderFilters`. The Offender
-  table defaults to `status asc` so **In Parole Review offenders appear at the
-  top** (the API applies the same default); the tie-break is display name.
+  table defaults to `status asc` so **Approved offenders appear at the top**
+  (the API applies the same default); the tie-break is display name.
   Header clicks toggle asc/desc (the active column shows ▲/▼ + `aria-sort`).
 - Table cells that navigate to a detail view must use `<Link>` (a real `<a
   href>`), never a `<button>` calling `navigate()`, so ctrl/cmd+click,
@@ -93,7 +93,7 @@ login). Done automatically by the axios request interceptor in `src/api/client.t
 ### Offenders
 | Method | Path                            | Notes |
 | ------ | ------------------------------- | ----- |
-| GET    | `/api/offenders/`               | array (no pagination wrapper); `?q=` (name/tdcj/sid), `?status=IN_REVIEW|NOT_IN_REVIEW|UNKNOWN`, `?active=true|false`, `?ordering=` (comma-separated, `-` prefix = desc; fields: `display_name`, `tdcj_number`, `parole_eligibility_date`, `next_parole_review_date`, `status`; nulls sort last) |
+| GET    | `/api/offenders/`               | array (no pagination wrapper); `?q=` (name/tdcj/sid), `?status=IN_REVIEW|NOT_IN_REVIEW|UNKNOWN|APPROVED`, `?active=true|false`, `?ordering=` (comma-separated, `-` prefix = desc; fields: `display_name`, `tdcj_number`, `parole_eligibility_date`, `next_parole_review_date`, `status`; nulls sort last) |
 | POST   | `/api/offenders/`               | `{tdcj_number}` required; API resolves sid/profile server-side via TDCJ search; 400 on duplicate/invalid |
 | GET    | `/api/offenders/{id}/`          | detail (read-only) |
 | POST   | `/api/offenders/{id}/unfollow/` | removes only the caller's group link; never deletes offender data |
@@ -101,12 +101,20 @@ login). Done automatically by the axios request interceptor in `src/api/client.t
 
 Offender payload fields mirror `src/types.ts`. `status` is computed by the API from the
 latest `OffenderStatus`; labels map `IN_REVIEW → "In Parole Review"`,
-`NOT_IN_REVIEW → "Not in Parole Review"`, `UNKNOWN → "Unknown"`. Dates are ISO
+`NOT_IN_REVIEW → "Not in Parole Review"`, `UNKNOWN → "Unknown"`,
+`APPROVED → "Approved"`. Dates are ISO
 `YYYY-MM-DD`; raw HTML detail/review fields are not exposed.
+The default status sort order (and the `?ordering=status` sort) places Approved
+first, then In Parole Review, Not in Parole Review, Unknown.
 `next_parole_review_date` is always the 1st of the month (the day is meaningless) and
 null when unknown — the UI renders it month/year only via `formatMonthYear()` (e.g.
 `2027-03-01 → "03/2027"`) and `—` when null. It appears as the "Next review" sortable
 column on the offender table and in a prominent banner at the top of the detail view.
+
+Status badges use the daily summary-report email color scheme: Approved green
+(`bg-green-100 text-green-800`), In Parole Review blue (`bg-blue-100
+text-blue-800`), Not in Parole Review gray (`bg-gray-100 text-gray-800`), Unknown
+red (`bg-red-100 text-red-700`).
 
 ### Errors
 DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use

@@ -1,4 +1,4 @@
-export type OffenderStatus = 'In Parole Review' | 'Not in Parole Review' | 'Unknown'
+export type OffenderStatus = 'Approved' | 'In Parole Review' | 'Not in Parole Review' | 'Unknown'
 
 export interface UserSettings {
   receive_email_alerts_for_offender_status_changes: boolean

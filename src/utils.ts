@@ -25,12 +25,15 @@ export const buttonSmallDangerClass =
 
 export function normalizeStatus(status: unknown): OffenderStatus {
   switch (status) {
+    case 'APPROVED':
+      return 'Approved'
     case 'IN_REVIEW':
       return 'In Parole Review'
     case 'NOT_IN_REVIEW':
       return 'Not in Parole Review'
     case 'UNKNOWN':
       return 'Unknown'
+    case 'Approved':
     case 'In Parole Review':
     case 'Not in Parole Review':
     case 'Unknown':
