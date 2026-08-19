@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useOffenders, useUnfollowOffender } from '../api/offenders'
 import { DataTable, type Column, type SortState } from '../components/DataTable'
 import { ErrorBanner } from '../components/ErrorBanner'
@@ -33,7 +33,6 @@ const SORT_FIELDS: Record<string, string> = {
 }
 
 export default function OffenderList() {
-  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [status, setStatus] = useState<'' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN'>('')
@@ -79,13 +78,9 @@ export default function OffenderList() {
       header: 'Name',
       sortable: true,
       render: (offender) => (
-        <button
-          type="button"
-          onClick={() => navigate(`/offenders/${offender.id}`)}
-          className="font-medium text-blue-600 hover:underline"
-        >
+        <Link to={`/offenders/${offender.id}`} className="font-medium text-blue-600 hover:underline">
           {offender.display_name || '—'}
-        </button>
+        </Link>
       ),
     },
     { key: 'tdcj', header: 'TDCJ #', sortable: true, render: (offender) => <span className="font-mono">{offender.tdcj_number}</span> },

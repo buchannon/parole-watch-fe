@@ -57,6 +57,9 @@ src/
   table defaults to `status asc` so **In Parole Review offenders appear at the
   top** (the API applies the same default); the tie-break is display name.
   Header clicks toggle asc/desc (the active column shows ▲/▼ + `aria-sort`).
+- Table cells that navigate to a detail view must use `<Link>` (a real `<a
+  href>`), never a `<button>` calling `navigate()`, so ctrl/cmd+click,
+  middle-click, and right-click → open in new tab work natively.
 - Auth is cookie-based (httpOnly JWT). Tokens are never read/written in JS.
 - Logging: use `src/api/logger.ts` — INFO for login/logout + CRUD mutations, WARN/ERROR
   for failed requests and auth failures. No raw `console.*` in app code.
