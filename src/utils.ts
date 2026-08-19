@@ -44,6 +44,12 @@ export function formatDate(value: string | null | undefined): string {
   return value || '—'
 }
 
+export function formatMonthYear(value: string | null | undefined): string {
+  if (!value) return '—'
+  const match = /^(\d{4})-(\d{2})/.exec(value)
+  return match ? `${match[2]}/${match[1]}` : value
+}
+
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
   const date = new Date(value)

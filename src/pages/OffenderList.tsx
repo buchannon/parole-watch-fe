@@ -12,6 +12,7 @@ import {
   buttonSmallSecondaryClass,
   cn,
   extractErrorMessage,
+  formatMonthYear,
   inputClass,
 } from '../utils'
 
@@ -28,6 +29,7 @@ const SORT_FIELDS: Record<string, string> = {
   name: 'display_name',
   tdcj: 'tdcj_number',
   status: 'status',
+  nextReview: 'next_parole_review_date',
 }
 
 export default function OffenderList() {
@@ -88,6 +90,12 @@ export default function OffenderList() {
     },
     { key: 'tdcj', header: 'TDCJ #', sortable: true, render: (offender) => <span className="font-mono">{offender.tdcj_number}</span> },
     { key: 'status', header: 'Status', sortable: true, render: (offender) => <StatusBadge status={offender.status} /> },
+    {
+      key: 'nextReview',
+      header: 'Next review',
+      sortable: true,
+      render: (offender) => formatMonthYear(offender.next_parole_review_date),
+    },
     {
       key: 'actions',
       header: '',

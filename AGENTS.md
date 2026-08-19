@@ -90,7 +90,7 @@ login). Done automatically by the axios request interceptor in `src/api/client.t
 ### Offenders
 | Method | Path                            | Notes |
 | ------ | ------------------------------- | ----- |
-| GET    | `/api/offenders/`               | array (no pagination wrapper); `?q=` (name/tdcj/sid), `?status=IN_REVIEW|NOT_IN_REVIEW|UNKNOWN`, `?active=true|false`, `?ordering=` (comma-separated, `-` prefix = desc; fields: `display_name`, `tdcj_number`, `parole_eligibility_date`, `status`) |
+| GET    | `/api/offenders/`               | array (no pagination wrapper); `?q=` (name/tdcj/sid), `?status=IN_REVIEW|NOT_IN_REVIEW|UNKNOWN`, `?active=true|false`, `?ordering=` (comma-separated, `-` prefix = desc; fields: `display_name`, `tdcj_number`, `parole_eligibility_date`, `next_parole_review_date`, `status`; nulls sort last) |
 | POST   | `/api/offenders/`               | `{tdcj_number}` required; API resolves sid/profile server-side via TDCJ search; 400 on duplicate/invalid |
 | GET    | `/api/offenders/{id}/`          | detail (read-only) |
 | POST   | `/api/offenders/{id}/unfollow/` | removes only the caller's group link; never deletes offender data |
@@ -100,6 +100,10 @@ Offender payload fields mirror `src/types.ts`. `status` is computed by the API f
 latest `OffenderStatus`; labels map `IN_REVIEW → "In Parole Review"`,
 `NOT_IN_REVIEW → "Not in Parole Review"`, `UNKNOWN → "Unknown"`. Dates are ISO
 `YYYY-MM-DD`; raw HTML detail/review fields are not exposed.
+`next_parole_review_date` is always the 1st of the month (the day is meaningless) and
+null when unknown — the UI renders it month/year only via `formatMonthYear()` (e.g.
+`2027-03-01 → "03/2027"`) and `—` when null. It appears as the "Next review" sortable
+column on the offender table and in a prominent banner at the top of the detail view.
 
 ### Errors
 DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use

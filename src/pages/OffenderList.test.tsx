@@ -25,6 +25,7 @@ const offenders: Offender[] = [
     tdcj_number: '00637060',
     status: 'In Parole Review',
     parole_eligibility_date: '2026-01-15',
+    next_parole_review_date: '2027-03-01',
     is_active: true,
     race: '',
     gender: '',
@@ -44,6 +45,7 @@ const offenders: Offender[] = [
     tdcj_number: '01234567',
     status: 'Not in Parole Review',
     parole_eligibility_date: null,
+    next_parole_review_date: null,
     is_active: false,
     race: '',
     gender: '',
@@ -95,6 +97,13 @@ describe('OffenderList', () => {
     expect(screen.getByText('Not in Parole Review')).toBeInTheDocument()
   })
 
+  it('renders the next parole review date as month/year and a dash when unknown', () => {
+    renderList()
+    expect(screen.getByText('03/2027')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /Next review/i })).toBeInTheDocument()
+  })
+
   it('shows the search box and add-offender button', () => {
     renderList()
     expect(screen.getByLabelText('Search offenders')).toBeInTheDocument()
@@ -122,5 +131,14 @@ describe('OffenderList', () => {
     expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: '-display_name' }))
     fireEvent.click(screen.getByRole('button', { name: /TDCJ #/i }))
     expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'tdcj_number' }))
+  })
+
+  it('sorts by next parole review date on header click', () => {
+    renderList()
+    const reviewHeader = screen.getByRole('button', { name: /Next review/i })
+    fireEvent.click(reviewHeader)
+    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'next_parole_review_date' }))
+    fireEvent.click(reviewHeader)
+    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: '-next_parole_review_date' }))
   })
 })

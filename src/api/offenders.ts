@@ -35,6 +35,7 @@ function makeTempOffender(tdcjNumber: string): Offender {
     current_facility: '',
     projected_release_date: null,
     parole_eligibility_date: null,
+    next_parole_review_date: null,
     parole_details_url: '',
     visitation_eligible: '',
     status: 'Unknown',

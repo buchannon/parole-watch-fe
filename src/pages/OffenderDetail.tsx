@@ -4,7 +4,7 @@ import { useOffender, useOffenderStatuses } from '../api/offenders'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { Spinner } from '../components/Spinner'
 import { StatusBadge } from '../components/StatusBadge'
-import { extractErrorMessage, formatDate, formatDateTime, normalizeStatus } from '../utils'
+import { extractErrorMessage, formatDate, formatDateTime, formatMonthYear, normalizeStatus } from '../utils'
 
 export default function OffenderDetail() {
   const { id = '' } = useParams()
@@ -24,6 +24,11 @@ export default function OffenderDetail() {
           <h1 className="text-2xl font-bold text-gray-900">{offender.display_name || offender.tdcj_number}</h1>
           <StatusBadge status={offender.status} />
         </div>
+      </div>
+
+      <div className="flex items-baseline gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Next parole review</span>
+        <span className="text-lg font-semibold text-blue-700">{formatMonthYear(offender.next_parole_review_date)}</span>
       </div>
 
       <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">

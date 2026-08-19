@@ -28,6 +28,7 @@ export interface Offender {
   current_facility: string
   projected_release_date: string | null
   parole_eligibility_date: string | null
+  next_parole_review_date: string | null
   parole_details_url: string
   visitation_eligible: string
   status: OffenderStatus
