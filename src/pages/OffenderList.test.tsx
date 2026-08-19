@@ -38,6 +38,10 @@ const offenders: Offender[] = [
     projected_release_date: null,
     parole_details_url: '',
     visitation_eligible: '',
+    last_parole_decision: 'denied',
+    last_parole_decision_date: '2026-01-15',
+    last_parole_decision_note: 'NEXT REVIEW (12/2026)- Deny favorable parole action.',
+    denial_reasons: '1D, 3D, 5D',
   },
   {
     id: '2',
@@ -58,6 +62,10 @@ const offenders: Offender[] = [
     projected_release_date: null,
     parole_details_url: '',
     visitation_eligible: '',
+    last_parole_decision: '',
+    last_parole_decision_date: null,
+    last_parole_decision_note: '',
+    denial_reasons: '',
   },
 ]
 

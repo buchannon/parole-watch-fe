@@ -39,6 +39,10 @@ function makeTempOffender(tdcjNumber: string): Offender {
     parole_details_url: '',
     visitation_eligible: '',
     status: 'Unknown',
+    last_parole_decision: '',
+    last_parole_decision_date: null,
+    last_parole_decision_note: '',
+    denial_reasons: '',
   }
 }
 

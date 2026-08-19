@@ -32,6 +32,10 @@ export interface Offender {
   parole_details_url: string
   visitation_eligible: string
   status: OffenderStatus
+  last_parole_decision: string
+  last_parole_decision_date: string | null
+  last_parole_decision_note: string
+  denial_reasons: string
 }
 
 export interface OffenderStatusHistoryItem {
