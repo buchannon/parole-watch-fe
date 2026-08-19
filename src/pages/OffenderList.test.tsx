@@ -93,7 +93,6 @@ describe('OffenderList', () => {
     expect(screen.getByText('00637060')).toBeInTheDocument()
     expect(screen.getByText('In Parole Review')).toBeInTheDocument()
     expect(screen.getByText('Not in Parole Review')).toBeInTheDocument()
-    expect(screen.getByText('2026-01-15')).toBeInTheDocument()
   })
 
   it('shows the search box and add-offender button', () => {
@@ -123,7 +122,5 @@ describe('OffenderList', () => {
     expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: '-display_name' }))
     fireEvent.click(screen.getByRole('button', { name: /TDCJ #/i }))
     expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'tdcj_number' }))
-    fireEvent.click(screen.getByRole('button', { name: /Parole eligibility/i }))
-    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'parole_eligibility_date' }))
   })
 })
