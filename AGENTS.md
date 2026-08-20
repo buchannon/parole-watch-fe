@@ -152,7 +152,16 @@ build lives there at the root (`index.html`, `assets/`, `favicon.svg`). The Djan
 sits **outside** the docroot at `/home/jshomoek/parole.watch.api`; the API is mounted at
 `/api` only via the CloudLinux Passenger config in `api/.htaccess`
 (`PassengerBaseURI "/api"`, `PassengerAppRoot "/home/jshomoek/parole.watch.api"`) — never
-edit or delete that file. Upload the build to the docroot **root**; the docroot `.htaccess`
+edit or delete that file.
+
+The docroot `api/` directory is the **Passenger mount point** for the API. It contains
+**only** the generated `.htaccess` (no app code — the Django code lives outside the
+docroot), so it is not part of the front-end build. It must **never** be deleted, renamed
+(e.g. to `api_OLD/` — that breaks `/api` with LiteSpeed 404s), or overwritten during a
+deploy. Deploys must **not** `rsync --delete` against the docroot; if any sync tool is
+used, explicitly exclude `api/`, `cgi-bin/`, and `.well-known/`.
+
+Upload the build to the docroot **root**; the docroot `.htaccess`
 SPA rewrite must keep the `favicon.*` exclusion (see deploy doc) so `/favicon.ico` 404s
 instead of returning `index.html`; otherwise Chrome shows a generic globe icon on
 cold/incognito loads instead of `/favicon.svg`.
