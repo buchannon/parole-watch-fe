@@ -64,8 +64,8 @@ is documented in [`AGENTS.md`](./AGENTS.md).
 
 ## Deploy
 
-The UI is a static build served from the `parole-watch.jshowers.com` subdomain docroot
-(`/parole-watch.jshowers.com/` on FTP — **not** `public_html/`, which is the WordPress
-blog). The Django API is mounted at `/api` via Passenger. See
+The UI is a static build served from the `parole.watch` docroot (`/parole.watch/` on FTP —
+**not** `public_html/`, which is the WordPress blog). The Django API lives outside the
+docroot and is mounted at `/api` via Passenger. See
 [`.opencode/commands/parole-watch-ui-deploy.md`](./.opencode/commands/parole-watch-ui-deploy.md)
 for the manual deploy steps.

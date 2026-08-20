@@ -145,14 +145,14 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 Documented in `.opencode/commands/parole-watch-ui-deploy.md`. Manual only — never run.
 
 **⚠️ Never touch `public_html/`** — it is the WordPress blog at `https://jshowers.com/`.
-The real docroot for the parole-watch subdomain is **not** `public_html`. It is the
-subdomain's own folder, `/parole-watch.jshowers.com/` on the FTP server (SSH:
-`ssh parole-watch-server` → `/home/jshomoek/parole-watch.jshowers.com/`). The front-end
-build lives there at the root (`index.html`, `assets/`, `favicon.svg`), alongside the
-deployed Django repo. The API is mounted at `/api` only via the CloudLinux Passenger
-config in `api/.htaccess` (`PassengerBaseURI "/api"`) — never edit that file. Upload the
-build to the docroot **root**; an earlier deploy wrongly placed it inside the Django
-package folder `parole_watch/`, which caused a directory listing instead of the SPA. The
-docroot `.htaccess` SPA rewrite must keep the `favicon.*` exclusion (see deploy doc) so
-`/favicon.ico` 404s instead of returning `index.html`; otherwise Chrome shows a generic
-globe icon on cold/incognito loads instead of `/favicon.svg`.
+The real docroot for the parole-watch site is **not** `public_html`. It is the domain's
+own folder, `/parole.watch/` on the FTP server (SSH:
+`ssh parole-watch-server` → `/home/jshomoek/parole.watch/`). The front-end
+build lives there at the root (`index.html`, `assets/`, `favicon.svg`). The Django repo
+sits **outside** the docroot at `/home/jshomoek/parole.watch.api`; the API is mounted at
+`/api` only via the CloudLinux Passenger config in `api/.htaccess`
+(`PassengerBaseURI "/api"`, `PassengerAppRoot "/home/jshomoek/parole.watch.api"`) — never
+edit or delete that file. Upload the build to the docroot **root**; the docroot `.htaccess`
+SPA rewrite must keep the `favicon.*` exclusion (see deploy doc) so `/favicon.ico` 404s
+instead of returning `index.html`; otherwise Chrome shows a generic globe icon on
+cold/incognito loads instead of `/favicon.svg`.
