@@ -6,11 +6,13 @@ import NotFound from './pages/NotFound'
 import OffenderDetail from './pages/OffenderDetail'
 import OffenderList from './pages/OffenderList'
 import Settings from './pages/Settings'
+import Signup from './pages/Signup'
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<RedirectIfAuthed><Login /></RedirectIfAuthed>} />
+      <Route path="/signup" element={<Signup />} />
       <Route element={<RequireAuth><Layout /></RequireAuth>}>
         <Route path="/" element={<Navigate to="/offenders" replace />} />
         <Route path="/offenders" element={<OffenderList />} />

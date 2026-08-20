@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { extractErrorMessage, inputClass } from '../utils'
@@ -74,6 +74,11 @@ export default function Login() {
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+        <p className="mt-6 text-center text-sm text-gray-500">
+          <Link to="/signup" className="font-medium text-blue-600 hover:underline">
+            Want to sign up? Contact me for pricing.
+          </Link>
+        </p>
       </div>
     </div>
   )

@@ -32,10 +32,11 @@ src/
     client.ts         axios instance, baseURL '/api', CSRF header, 401 handling
     logger.ts         logInfo / logWarn / logError helpers
     auth.ts           login / logout / me requests
+    signup.ts         useSignup (public lead-form POST to /signup/)
     offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
   auth/             AuthContext (user state, login/logout/me), RequireAuth + RedirectIfAuthed guards
   components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, forms
-  pages/            Login, OffenderList, OffenderDetail, Settings, NotFound
+  pages/            Login, Signup, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
   types.ts          TS interfaces mirroring the API payloads
   utils.ts          classnames helper, date/status formatters, error extraction
@@ -78,6 +79,11 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 | GET    | `/api/auth/me/`       |                         | returns `{username, email, name, groups: string[]}`; 401 if not authenticated |
 | GET    | `/api/auth/settings/` |                         | returns `UserSettings`; 401 if not authenticated |
 | PATCH  | `/api/auth/settings/` | partial `UserSettings`  | values must be booleans; returns the full updated `UserSettings` |
+
+### Signup (public, no auth)
+| Method | Path            | Body                                  | Notes |
+| ------ | --------------- | ------------------------------------- | ----- |
+| POST   | `/api/signup/`  | `{name, email, description}`          | `AllowAny`; emails a hardcoded recipient with the lead. DRF-style field errors on missing/invalid input. Not yet implemented in the backend — the Signup page shows an error banner until it lands. |
 
 `name` is the user's full name (falls back to username). `groups` are the current user's
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
@@ -139,6 +145,9 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 - `src/pages/Settings.test.tsx` — renders account details and both email-alert toggles
   (status-change alerts + weekly summary report); each toggle reflects its setting and
   fires a partial PATCH mutation when flipped.
+- `src/pages/Signup.test.tsx` — renders the pricing headline, 3 benefit bullets, and
+  Name/Email/Description fields; submit fires the `useSignup` mutation with the entered
+  values; success shows the thank-you state.
 
 ## Deploy
 
