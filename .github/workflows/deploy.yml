@@ -1,0 +1,52 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Stage docroot payload
+        run: |
+          cp .htaccess dist/.htaccess
+          ls -la dist/
+
+      - name: Deploy to parole.watch
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          ssh-keyscan -p "$DEPLOY_SSH_PORT" "$DEPLOY_SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Deploy the build to the docroot. --delete clears stale hashed assets;
+          # the excludes protect the Passenger mount point (api/), cPanel
+          # scaffolding (cgi-bin/), and SSL validation files (.well-known/).
+          rsync -avz --delete \
+            -e "ssh -p $DEPLOY_SSH_PORT -o StrictHostKeyChecking=no" \
+            --exclude='api/' \
+            --exclude='cgi-bin/' \
+            --exclude='.well-known/' \
+            dist/ "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:/home/jshomoek/parole.watch/"

@@ -142,7 +142,16 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 
 ## Deploy
 
-Documented in `.opencode/commands/parole-watch-ui-deploy.md`. Manual only — never run.
+**Primary method: GitHub Actions** — `.github/workflows/deploy.yml` runs on push to
+`main` (and manual `workflow_dispatch`): `npm ci` + `npm run build`, copies the
+committed root `.htaccess` into `dist/`, then `rsync --delete`s `dist/` to the docroot
+over SSH (`jshomoek@jshowers.com:21098`) with `--exclude='api/' --exclude='cgi-bin/'
+--exclude='.well-known/'`. Full procedure documented in
+`.opencode/commands/parole-watch-ui-deploy.md` (manual steps there are fallback only).
+
+GitHub secrets required: `DEPLOY_SSH_KEY` (ed25519 deploy key, public half in
+`~/.ssh/authorized_keys` on the server), `DEPLOY_SSH_HOST` = `jshowers.com`,
+`DEPLOY_SSH_PORT` = `21098`, `DEPLOY_SSH_USER` = `jshomoek`.
 
 **⚠️ Never touch `public_html/`** — it is the WordPress blog at `https://jshowers.com/`.
 The real docroot for the parole-watch site is **not** `public_html`. It is the domain's

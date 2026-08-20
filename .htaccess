@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+    Options -Indexes
+    RewriteEngine On
+
+    # Never rewrite existing files or directories
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Let missing favicon files 404 so browsers fall back to <link rel=icon> (/favicon.svg)
+    RewriteCond %{REQUEST_URI} !^/favicon\.(ico|svg|png|gif|webp)$ [NC]
+
+    # Rewrite every non-/api request to index.html for SPA history routing
+    RewriteRule !^api index.html [L]
+</IfModule>

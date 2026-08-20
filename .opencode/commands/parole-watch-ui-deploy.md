@@ -1,9 +1,39 @@
 # Deploy: Parole Watch UI
 
-**Manual only — the agent must never run these steps.**
+**Primary method: GitHub Actions (`.github/workflows/deploy.yml`).** The manual steps
+below are fallback only — never run them as a routine deploy.
 
 The server has no Node runtime; the UI is a static build served from the `parole.watch`
 docroot on the Namecheap shared host.
+
+## 0. Deploy via GitHub Action (primary)
+
+`.github/workflows/deploy.yml` deploys automatically on every push to `main` (and via
+manual `workflow_dispatch` run). It:
+
+1. Checks out the code, `npm ci`, `npm run build`.
+2. Copies the committed root `.htaccess` into `dist/` (the SPA rewrite is versioned in
+   the repo now, so deploys are reproducible).
+3. Runs `rsync --delete` of `dist/` → `/home/jshomoek/parole.watch/` over SSH
+   (`jshomoek@jshowers.com:21098`), with `--exclude='api/' --exclude='cgi-bin/'
+   --exclude='.well-known/'`.
+
+The three excludes mean the Passenger mount point (`api/`), cPanel scaffolding, and SSL
+validation files are **never** touched or deleted, while `--delete` safely clears stale
+hashed assets in `assets/`.
+
+### GitHub secrets required (already set: 2026-08-20)
+
+| Secret            | Value         |
+| ----------------- | ------------- |
+| `DEPLOY_SSH_KEY`  | ed25519 deploy private key (public half in `~/.ssh/authorized_keys` on the server) |
+| `DEPLOY_SSH_HOST` | `jshowers.com` |
+| `DEPLOY_SSH_PORT` | `21098`        |
+| `DEPLOY_SSH_USER` | `jshomoek`     |
+
+If the workflow's rsync step fails with a permission/host-key error, the SSH host key
+changed or the deploy key was rotated — re-run `ssh-keygen` + append the new public key
+to `~/.ssh/authorized_keys` (via `ssh parole-watch-server`) and update `DEPLOY_SSH_KEY`.
 
 ## ⚠️ CRITICAL — do NOT touch `public_html`
 
@@ -44,7 +74,12 @@ The API is served by the CloudLinux Passenger app mounted at **`/api`** only
 `parole_watch/`, etc. are never web-accessible. Everything else under the docroot is
 static, so the front-end at the root reaches the API at the same origin `/api/...`.
 
-## 1. Build locally
+## Fallback: manual build + upload
+
+Only if GitHub Actions is unavailable. Follow the same rules as the workflow — never
+touch `api/`, `cgi-bin/`, or `.well-known/`.
+
+### 1. Build locally
 
 ```bash
 npm run build
@@ -52,7 +87,7 @@ npm run build
 
 Produces `dist/` (`index.html`, `assets/`, `favicon.svg`).
 
-## 2. Upload to Namecheap
+### 2. Upload to Namecheap
 
 - Via FTP or cPanel File Manager, upload the **contents of `dist/`** (not the `dist/`
   folder itself) into the docroot root `/parole.watch/` (FTP) or
@@ -61,9 +96,9 @@ Produces `dist/` (`index.html`, `assets/`, `favicon.svg`).
   `cgi-bin/`, `.well-known/`).
 - **Never `rsync --delete` against the docroot** — that would wipe `api/` (the Passenger
   mount point), `cgi-bin/`, and `.well-known/`. Sync the contents of `dist/` additively,
-  or exclude those three paths explicitly.
+  or exclude those three paths explicitly (as the workflow does).
 
-## 3. SPA history routing: docroot `.htaccess`
+### 3. SPA history routing: docroot `.htaccess`
 
 Create or merge the following into the docroot `.htaccess` (at the same level as
 `index.html`), preserving any existing rewrite/Passenger rules:
@@ -111,7 +146,10 @@ Why this works:
 - `https://parole.watch/assets/<hash>.js` and `/favicon.svg` return 200.
 - Log in and confirm offender list/detail/settings render.
 
-## 5. Deploy notes (2026-08-20)
+After a GitHub Action run, confirm the deployed `assets/` hashes match the new build
+(the workflow's rsync output lists them).
+
+## 5. Deploy notes
 
 - The docroot `.htaccess` did **not** exist before the first deploy to the new
   `parole.watch` domain — it was created fresh with the exact SPA rewrite block above.
