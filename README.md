@@ -7,16 +7,16 @@ React SPA that talks to it.
 
 ## Stack
 
-- React 18 + TypeScript (strict) + Vite
+- React 18 + TypeScript (strict) + Vite 6
 - Tailwind CSS v3 (via PostCSS — not Tailwind v4)
-- react-router-dom v6
+- react-router-dom v7
 - @tanstack/react-query v5 for all server state
 - axios (`withCredentials: true`) for HTTP
-- vitest + @testing-library/react for tests
+- vitest v3 + @testing-library/react for tests
 
 ## Getting started
 
-Requires Node 18+. The local Django API must be running on `http://localhost:8000`.
+Requires Node 20+. The local Django API must be running on `http://localhost:8000`.
 
 ```bash
 npm install

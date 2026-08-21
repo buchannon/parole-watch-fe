@@ -7,12 +7,12 @@ API; this repo is the React SPA that talks to it.
 
 ## Stack
 
-- React 18 + TypeScript (strict) + Vite
+- React 18 + TypeScript (strict) + Vite 6
 - Tailwind CSS v3 (via PostCSS — do NOT upgrade to v4)
-- react-router-dom v6
+- react-router-dom v7 (drop-in from v6; only v6-compatible API is used)
 - @tanstack/react-query v5 for all server state
 - axios (`withCredentials: true`) for HTTP
-- vitest + @testing-library/react for tests
+- vitest v3 + @testing-library/react for tests
 - No state-management library — React Query + React Context (auth only)
 
 ## Commands
