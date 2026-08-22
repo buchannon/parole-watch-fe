@@ -57,12 +57,13 @@ public/flags/       Vendored US state flag SVGs (`<code>.svg`, Wikimedia Commons
   `UnauthorizedWatcher` that bounces to `/login`.
 - Server state lives in React Query hooks under `src/api/`. Optimistic updates for
   create/unfollow are implemented in the mutations there, with rollback on error.
-- `DataTable` supports server-side sorting: sortable columns set `sortable: true`
-  and the owning page holds a `SortState` (`{key, direction}`), derives an
-  `?ordering=` string, and passes it through `OffenderFilters`. The Offender
-  table defaults to `status asc` so **Approved offenders appear at the top**
-  (the API applies the same default); the tie-break is display name.
-  Header clicks toggle asc/desc (the active column shows ▲/▼ + `aria-sort`).
+- `DataTable` renders a sortable grid: sortable columns set `sortable: true` and
+  the owning page holds a `SortState` (`{key, direction}`). Header clicks toggle
+  asc/desc (the active column shows ▲/▼ + `aria-sort`). The Offender list sorts
+  **client-side** via `compareOffenders()` in `src/pages/OffenderList.tsx`
+  (each section has its own `SortState`); it does **not** send `?ordering=` to
+  the API. Other pages would still be free to drive server-side sorting by
+  mapping a `SortState` to an `?ordering=` string.
 - Table cells that navigate to a detail view must use `<Link>` (a real `<a
   href>`), never a `<button>` calling `navigate()`, so ctrl/cmd+click,
   middle-click, and right-click → open in new tab work natively.
@@ -180,8 +181,22 @@ latest `OffenderStatus`; labels map `IN_REVIEW → "In Parole Review"`,
 `NOT_IN_REVIEW → "Not in Parole Review"`, `UNKNOWN → "Unknown"`,
 `APPROVED → "Approved"`. Dates are ISO
 `YYYY-MM-DD`; raw HTML detail/review fields are not exposed.
-The default status sort order (and the `?ordering=status` sort) places Approved
+The API's default status sort order (and its `?ordering=status` sort) places Approved
 first, then In Parole Review, Not in Parole Review, Unknown.
+
+The `/offenders` list page (`src/pages/OffenderList.tsx`) does **not** send `?status=`
+or `?ordering=` — it fetches once (search `?q=` + `active=true`) and splits the results
+client-side into two collapsible sections (`SectionToggle` header: chevron + title +
+row-count badge, `aria-expanded`/`aria-controls`). The **"Offenders in progress" section**
+(the main grid, expanded by default) shows only `In Parole Review` and
+`Not in Parole Review` offenders. The **"Offenders approved for parole" section** sits
+**below** the main grid, is collapsed by default, and only renders when non-empty; it
+shows `Approved` offenders. `Unknown` offenders are hidden entirely (so the optimistic
+temp offender created by `useCreateOffender` is invisible until the refetch lands).
+Searching shows a combined "N results for …" line above the sections. Each section has
+its own `SortState` and is sorted client-side by `compareOffenders()` (name/TDCJ via
+`localeCompare`, next-review date with undated rows last, status by the API's order),
+so the two tables sort independently.
 `next_parole_review_date` is always the 1st of the month (the day is meaningless) and
 null when unknown — the UI renders it month/year only via `formatMonthYear()` (e.g.
 `2027-03-01 → "03/2027"`) and `—` when null. It appears as the "Next review" sortable
@@ -211,8 +226,12 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 - `src/auth/RequireAuth.test.tsx` — guard redirects unauthenticated users to `/login`,
   renders children when authenticated; `RequireSubscription` renders children when the group is
   subscribed and the paywall when not.
-- `src/pages/OffenderList.test.tsx` — smoke test: mocked offender hooks render the table,
-  status badges, search box, and empty state; a subscription-403 query error renders the paywall.
+- `src/pages/OffenderList.test.tsx` — mocked offender hooks render the two sections: active
+  offenders (In Review / Not in Review) in the "Offenders in progress" grid (expanded by
+  default, collapsible), `Approved` offenders hidden behind a collapsed-by-default
+  "Offenders approved for parole" toggle that sits below the main grid; `Unknown` offenders
+  are hidden; both section counts and the search-results line are shown; each table sorts
+  client-side and independently; a subscription-403 query error renders the paywall.
 - `src/pages/Paywall.test.tsx` — renders the subscription message + Subscribe button; a successful
   checkout redirects to `checkout_url`; a failure renders an error banner.
 - `src/pages/Settings.test.tsx` — renders account details, the featured Operating State row

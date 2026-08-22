@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as offendersApi from '../api/offenders'
 import type { Offender } from '../types'
 import OffenderList from './OffenderList'
@@ -116,6 +116,10 @@ function renderList() {
   )
 }
 
+function rowNames(container: HTMLElement): string[] {
+  return Array.from(container.querySelectorAll('tbody tr')).map((row) => row.querySelector('a')?.textContent ?? '')
+}
+
 describe('OffenderList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -124,18 +128,18 @@ describe('OffenderList', () => {
     mockUseUnfollowOffender.mockReturnValue(mockMutation())
   })
 
-  it('renders offender rows with name, TDCJ number, and status badge', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('renders active offender rows (In Review / Not in Review) and hides approved offenders', () => {
     renderList()
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()
     expect(screen.getByText('John Smith')).toBeInTheDocument()
-    expect(screen.getByText('Alicia Ruiz')).toBeInTheDocument()
+    expect(screen.queryByText('Alicia Ruiz')).not.toBeInTheDocument()
     expect(screen.getByText('00637060')).toBeInTheDocument()
     expect(screen.getByText('In Parole Review')).toBeInTheDocument()
     expect(screen.getByText('Not in Parole Review')).toBeInTheDocument()
-    expect(screen.getByText('Alicia Ruiz')).toBeInTheDocument()
-    expect(
-      screen.getByText('Approved', { selector: '.bg-green-100.text-green-800' }),
-    ).toHaveTextContent('Approved')
   })
 
   it('renders the next parole review date as month/year and a dash when unknown', () => {
@@ -155,6 +159,7 @@ describe('OffenderList', () => {
     mockUseOffenders.mockReturnValue(mockQueryResult({ data: [] }))
     renderList()
     expect(screen.getByText('No offenders yet. Add one to start tracking.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Offenders approved for parole/ })).not.toBeInTheDocument()
   })
 
   it('renders the paywall when the offender query returns a subscription 403', () => {
@@ -172,29 +177,101 @@ describe('OffenderList', () => {
     expect(screen.getByText('paywall-stub')).toBeInTheDocument()
   })
 
-  it('sorts by status ascending by default so approved offenders are on top', () => {
+  it('shows counts on the section toggles', () => {
     renderList()
-    expect(mockUseOffenders.mock.calls[0][0]).toMatchObject({ ordering: 'status' })
-    expect(screen.getByRole('columnheader', { name: /Status/i })).toHaveAttribute('aria-sort', 'ascending')
+    expect(screen.getByRole('heading', { name: /^Offenders$/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Offenders in progress/ })).toHaveTextContent('2')
+    expect(screen.getByRole('button', { name: /Offenders approved for parole/ })).toHaveTextContent('1')
   })
 
-  it('toggles between sortable columns on header clicks', () => {
+  it('keeps the approved section collapsed by default and expands it on click', () => {
     renderList()
+    const toggle = screen.getByRole('button', { name: /Offenders approved for parole/ })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText('Alicia Ruiz')).not.toBeInTheDocument()
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Alicia Ruiz')).toBeInTheDocument()
+    expect(screen.getByText('Approved', { selector: '.bg-green-100.text-green-800' })).toHaveTextContent('Approved')
+  })
+
+  it('keeps the main section expanded by default and collapses it on click', () => {
+    renderList()
+    const toggle = screen.getByRole('button', { name: /Offenders in progress/ })
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
+    expect(screen.queryByText('John Smith')).not.toBeInTheDocument()
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+  })
+
+  it('hides offenders with an unknown status', () => {
+    const withUnknown: Offender[] = [
+      ...offenders,
+      { ...offenders[0], id: '4', display_name: 'Ghost Person', tdcj_number: '99999999', status: 'Unknown' },
+    ]
+    mockUseOffenders.mockReturnValue(mockQueryResult({ data: withUnknown }))
+    renderList()
+    expect(screen.queryByText('Ghost Person')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^Offenders$/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Offenders in progress/ })).toHaveTextContent('2')
+  })
+
+  it('shows a search-results count line', () => {
+    vi.useFakeTimers()
+    renderList()
+    fireEvent.change(screen.getByLabelText('Search offenders'), { target: { value: 'jane' } })
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(screen.getByText('3 results for "jane"')).toBeInTheDocument()
+  })
+
+  it('does not send status or ordering filters and defaults to ascending name sort', () => {
+    renderList()
+    const filters = mockUseOffenders.mock.calls[0][0]
+    expect(filters).toMatchObject({ active: 'true' })
+    expect(filters).not.toHaveProperty('status')
+    expect(filters).not.toHaveProperty('ordering')
+    expect(screen.getByRole('columnheader', { name: /Name/i })).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('sorts the active table client-side on header clicks', () => {
+    const { container } = renderList()
     const nameHeader = screen.getByRole('button', { name: /Name/i })
+    expect(rowNames(container)).toEqual(['Jane Doe', 'John Smith'])
+
     fireEvent.click(nameHeader)
-    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'display_name' }))
+    expect(rowNames(container)).toEqual(['John Smith', 'Jane Doe'])
+    expect(screen.getByRole('columnheader', { name: /Name/i })).toHaveAttribute('aria-sort', 'descending')
+
     fireEvent.click(nameHeader)
-    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: '-display_name' }))
-    fireEvent.click(screen.getByRole('button', { name: /TDCJ #/i }))
-    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'tdcj_number' }))
+    expect(rowNames(container)).toEqual(['Jane Doe', 'John Smith'])
+    expect(screen.getByRole('columnheader', { name: /Name/i })).toHaveAttribute('aria-sort', 'ascending')
   })
 
   it('sorts by next parole review date on header click', () => {
     renderList()
-    const reviewHeader = screen.getByRole('button', { name: /Next review/i })
-    fireEvent.click(reviewHeader)
-    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: 'next_parole_review_date' }))
-    fireEvent.click(reviewHeader)
-    expect(mockUseOffenders).toHaveBeenLastCalledWith(expect.objectContaining({ ordering: '-next_parole_review_date' }))
+    fireEvent.click(screen.getByRole('button', { name: /Next review/i }))
+    expect(screen.getByRole('columnheader', { name: /Next review/i })).toHaveAttribute('aria-sort', 'ascending')
+    fireEvent.click(screen.getByRole('button', { name: /Next review/i }))
+    expect(screen.getByRole('columnheader', { name: /Next review/i })).toHaveAttribute('aria-sort', 'descending')
+  })
+
+  it('keeps the approved table sort independent from the active table', () => {
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Offenders approved for parole/ }))
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Name/i })[1])
+    const nameHeaders = screen.getAllByRole('columnheader', { name: /Name/i })
+    expect(nameHeaders[0]).toHaveAttribute('aria-sort', 'ascending')
+    expect(nameHeaders[1]).toHaveAttribute('aria-sort', 'descending')
   })
 })
