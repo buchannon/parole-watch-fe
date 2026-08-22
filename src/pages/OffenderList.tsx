@@ -16,12 +16,11 @@ import {
   inputClass,
 } from '../utils'
 
-const STATUS_CHIPS: Array<{ value: '' | 'APPROVED' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN'; label: string }> = [
+const STATUS_CHIPS: Array<{ value: '' | 'APPROVED' | 'IN_REVIEW' | 'NOT_IN_REVIEW'; label: string }> = [
   { value: '', label: 'All' },
   { value: 'APPROVED', label: 'Approved' },
   { value: 'IN_REVIEW', label: 'In Review' },
   { value: 'NOT_IN_REVIEW', label: 'Not in Review' },
-  { value: 'UNKNOWN', label: 'Unknown' },
 ]
 
 // Maps a table column key to the API `?ordering=` field. Only columns listed
@@ -36,7 +35,7 @@ const SORT_FIELDS: Record<string, string> = {
 export default function OffenderList() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [status, setStatus] = useState<'' | 'APPROVED' | 'IN_REVIEW' | 'NOT_IN_REVIEW' | 'UNKNOWN'>('')
+  const [status, setStatus] = useState<'' | 'APPROVED' | 'IN_REVIEW' | 'NOT_IN_REVIEW'>('')
   const [sort, setSort] = useState<SortState>({ key: 'status', direction: 'asc' })
   const [showAdd, setShowAdd] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
