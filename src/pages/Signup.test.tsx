@@ -63,7 +63,9 @@ describe('Signup', () => {
 
   it('renders the headline, benefits list, and form fields', () => {
     renderSignup()
-    expect(screen.getAllByRole('listitem')).toHaveLength(3)
+    expect(screen.getAllByRole('listitem')).toHaveLength(4)
+    expect(screen.getByAltText('Texas flag')).toHaveAttribute('src', '/flags/tx.svg')
+    expect(screen.getByText('Texas')).toBeInTheDocument()
     expect(screen.getByLabelText('Name')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Law firm name')).toBeInTheDocument()

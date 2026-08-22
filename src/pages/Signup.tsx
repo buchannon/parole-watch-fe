@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useSignup } from '../api/signup'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
+import { getState } from '../states'
 import { buttonPrimaryClass, extractErrorMessage, inputClass } from '../utils'
 
 const fieldLabelClass = 'mb-1 block text-sm font-medium text-gray-700'
@@ -11,10 +12,12 @@ const fieldLabelClass = 'mb-1 block text-sm font-medium text-gray-700'
 const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY
 
 const BENEFITS = [
-  'Automatically monitor the parole status of any Texas offender — no more manual daily checks.',
-  'Get an email the moment an offender\u2019s status changes, so nothing slips through.',
-  'Keep a full status-change history for every offender you track.',
+  'Automatically monitor the parole status of any offender you track — no more manual daily checks.',
+  'Get an email alert when an offender\u2019s status changes, so nothing slips through.',
+  'Keep status-change history for every offender you track.',
 ]
+
+const SUPPORTED_STATES = ['TX']
 
 export default function Signup() {
   const signup = useSignup()
@@ -52,7 +55,7 @@ export default function Signup() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
       <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="text-center text-2xl font-bold text-gray-900">Parole Watch</h1>
-        <p className="mt-1 text-center text-sm text-gray-500">Offender status tracking for Texas parolees</p>
+        <p className="mt-1 text-center text-sm text-gray-500">Offender status tracking</p>
         <ul className="mt-6 space-y-2">
           {BENEFITS.map((benefit) => (
             <li key={benefit} className="flex gap-2 text-sm text-gray-600">
@@ -61,6 +64,27 @@ export default function Signup() {
             </li>
           ))}
         </ul>
+        <div className="mt-6">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Supported states</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {SUPPORTED_STATES.map((code) => {
+              const state = getState(code)
+              return state ? (
+                <li
+                  key={code}
+                  className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
+                >
+                  <img
+                    src={state.flag}
+                    alt={`${state.name} flag`}
+                    className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
+                  />
+                  {state.name}
+                </li>
+              ) : null
+            })}
+          </ul>
+        </div>
         <hr className="my-6 border-gray-200" />
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <ErrorBanner message={error} />}
