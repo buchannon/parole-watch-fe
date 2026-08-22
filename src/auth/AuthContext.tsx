@@ -10,6 +10,7 @@ export interface AuthContextValue {
   login: (username: string, password: string, cfTurnstileResponse?: string) => Promise<void>
   logout: () => Promise<void>
   setUser: (user: AuthUser | null) => void
+  refreshUser: () => Promise<AuthUser>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -52,9 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    const authUser = await meRequest()
+    setUser(authUser)
+    return authUser
+  }, [])
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: Boolean(user), isLoading, login, logout, setUser }),
-    [user, isLoading, login, logout],
+    () => ({ user, isAuthenticated: Boolean(user), isLoading, login, logout, setUser, refreshUser }),
+    [user, isLoading, login, logout, refreshUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

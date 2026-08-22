@@ -32,7 +32,7 @@ const authUser: AuthUser = {
   email: 'jane@example.com',
   name: 'Jane Doe',
   groups: ['Doe & Associates'],
-  group_settings: [{ name: 'Doe & Associates', operating_state: 'TX' }],
+  group_settings: [{ name: 'Doe & Associates', operating_state: 'TX', is_subscribed: false }],
   settings: {
     receive_email_alerts_for_offender_status_changes: true,
     receive_offender_summary_report: true,

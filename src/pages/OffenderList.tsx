@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useOffenders, useUnfollowOffender } from '../api/offenders'
+import { isSubscriptionError } from '../auth/subscription'
 import { DataTable, type Column, type SortState } from '../components/DataTable'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { OffenderFormModal } from '../components/OffenderFormModal'
@@ -15,6 +16,7 @@ import {
   formatMonthYear,
   inputClass,
 } from '../utils'
+import Paywall from './Paywall'
 
 const STATUS_CHIPS: Array<{ value: '' | 'APPROVED' | 'IN_REVIEW' | 'NOT_IN_REVIEW'; label: string }> = [
   { value: '', label: 'All' },
@@ -39,6 +41,7 @@ export default function OffenderList() {
   const [sort, setSort] = useState<SortState>({ key: 'status', direction: 'asc' })
   const [showAdd, setShowAdd] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [paywall, setPaywall] = useState(false)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search), 300)
@@ -68,7 +71,13 @@ export default function OffenderList() {
     if (!window.confirm(`Unfollow ${offender.display_name || offender.tdcj_number}? You will stop tracking this offender.`)) return
     setActionError(null)
     unfollowOffender.mutate(offender.id, {
-      onError: (err) => setActionError(extractErrorMessage(err, 'Failed to unfollow offender')),
+      onError: (err) => {
+        if (isSubscriptionError(err)) {
+          setPaywall(true)
+          return
+        }
+        setActionError(extractErrorMessage(err, 'Failed to unfollow offender'))
+      },
     })
   }
 
@@ -105,6 +114,8 @@ export default function OffenderList() {
   ]
 
   const errorMessage = isError ? extractErrorMessage(error, 'Failed to load offenders') : actionError
+
+  if (paywall || isSubscriptionError(error)) return <Paywall />
 
   return (
     <div>
@@ -158,7 +169,9 @@ export default function OffenderList() {
         />
       )}
 
-      {showAdd && <OffenderFormModal onClose={() => setShowAdd(false)} />}
+      {showAdd && (
+        <OffenderFormModal onClose={() => setShowAdd(false)} onSubscriptionError={() => setPaywall(true)} />
+      )}
     </div>
   )
 }

@@ -33,10 +33,13 @@ src/
     logger.ts         logInfo / logWarn / logError helpers
     auth.ts           login / logout / me requests
     signup.ts         useSignup (public account-signup POST to /signup/)
+    billing.ts        useCreateCheckoutSession (POST /billing/checkout/ → {checkout_url, session_id})
     offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
-  auth/             AuthContext (user state, login/logout/me), RequireAuth + RedirectIfAuthed guards
+  auth/             AuthContext (user state, login/logout/me/refreshUser), RequireAuth + RedirectIfAuthed
+                    guards, RequireSubscription (paywall Outlet guard), subscription helpers
+    subscription.ts   isSubscribed(user) + isSubscriptionError(error) + SUBSCRIPTION_INACTIVE_DETAIL
   components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, forms
-  pages/            Login, Signup, OffenderList, OffenderDetail, Settings, NotFound
+  pages/            Login, Signup, Paywall, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
   states.ts         US state code → {name, flag} map (`US_STATES`) + `getState()`
   types.ts          TS interfaces mirroring the API payloads
@@ -91,11 +94,16 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
 
 `group_settings` is a read-only per-group settings list
-(`[{name: <group>, operating_state: <US state code>}]`, ordered by group name, scoped to the
-caller's groups; groups without a row are omitted). The Settings page shows the **first** group's
-Operating State as a featured row below the group name — the state name + its flag icon
-(`getState()` in `src/states.ts`; flag SVGs served from `/flags/<code>.svg`). Not editable on the
-Settings page — the API has no write endpoint for group settings.
+(`[{name: <group>, operating_state: <US state code>, is_subscribed: <boolean>}]`, ordered by group
+name, scoped to the caller's groups; groups without a row are omitted). The Settings page shows the
+**first** group's Operating State as a featured row below the group name — the state name + its flag
+icon (`getState()` in `src/states.ts`; flag SVGs served from `/flags/<code>.svg`). Not editable on
+the Settings page — the API has no write endpoint for group settings.
+
+`is_subscribed` gates feature access: new signups always come back `false`; existing accounts
+`true`. The front-end treats the user as subscribed if **any** group is subscribed
+(`isSubscribed()` in `src/auth/subscription.ts`) — this mirrors the backend, which 403s offender
+endpoints only when **all** of the user's groups are unsubscribed (or the user has no group).
 
 `settings` is `{receive_email_alerts_for_offender_status_changes: boolean,
 receive_offender_summary_report: boolean}` (both default true) and is included in the
@@ -123,6 +131,37 @@ so dev/test flows are unchanged. Backend verification lives in
 fail-closed, checks `success` + `action` + hostname allowlist) and is wired into
 `LoginView` and `SignupView`.
 
+### Billing (Stripe subscription)
+| Method | Path                     | Notes |
+| ------ | ------------------------ | ----- |
+| POST   | `/api/billing/checkout/` | authenticated; creates a Stripe Checkout Session for the user's group subscription and returns `{checkout_url, session_id}`; 400 `{"detail": "..."}` on no groups / billing unconfigured / Stripe error. **Not** subscription-gated — it is how an unsubscribed user pays. |
+| POST   | `/api/stripe/webhook/`   | unauthenticated, signature-verified; Stripe server-to-server only. Flips `is_subscribed` on `checkout.session.completed` + subscription lifecycle events. The front-end never calls it. |
+
+### Subscription gating (paywall)
+
+Feature access (the offender endpoints below) is gated on the user's group subscription. The
+front-end decides what to show from the auth payload's `group_settings[].is_subscribed`, and treats
+a subscription-403 on any offender call as the paywall state (the subscription may have lapsed
+mid-session).
+
+- `RequireSubscription` (in `src/auth/RequireAuth.tsx`) is an Outlet guard wrapping the
+  `/offenders` and `/offenders/:id` routes inside the `RequireAuth`/`Layout` route. It renders
+  `<Outlet />` when `isSubscribed(user)` is true, else `src/pages/Paywall.tsx`. `/settings` stays
+  ungated (settings/logout remain reachable while unsubscribed). Auth endpoints (login, me, logout,
+  refresh, settings), ping, signup, and billing are all accessible to unsubscribed users.
+- `src/pages/Paywall.tsx` shows the group name, a **Subscribe** button that runs
+  `useCreateCheckoutSession()` (`src/api/billing.ts`) and redirects the browser to
+  `checkout_url` on success (`window.location.assign`); failures render an `ErrorBanner`. On mount it
+  calls `refreshUser()` (a fresh `GET /auth/me/`) and, if the group is now subscribed, invalidates
+  the offender queries — this picks up the subscribed state when Stripe redirects back to the app's
+  success URL (a full page load re-runs `meRequest()` in `AuthProvider` anyway; `refreshUser` covers
+  the webhook race). If subscribed after the refresh it renders `null` and the guard flips to the app.
+- `OffenderList` and `OffenderDetail` additionally render `<Paywall />` when their query error matches
+  `isSubscriptionError()` (axios 403 + `detail === SUBSCRIPTION_INACTIVE_DETAIL`), and offender
+  create/unfollow mutations trigger the same paywall state on that 403.
+- The response interceptor in `src/api/client.ts` is unchanged: only 401 bounces to `/login`; a 403
+  subscription error is surfaced by the components above.
+
 ### Offenders
 | Method | Path                            | Notes |
 | ------ | ------------------------------- | ----- |
@@ -131,6 +170,10 @@ fail-closed, checks `success` + `action` + hostname allowlist) and is wired into
 | GET    | `/api/offenders/{id}/`          | detail (read-only) |
 | POST   | `/api/offenders/{id}/unfollow/` | removes only the caller's group link; never deletes offender data |
 | GET    | `/api/offenders/{id}/statuses/` | status history, newest first; items `{id, status, created, edited}` |
+
+**All offender endpoints return 403 `{"detail": "Your group subscription is not active."}` until
+subscribed** (superusers bypass). A user with no groups now gets 403 on offender endpoints too
+(previously they could still add offenders). Unauthenticated requests still get 401.
 
 Offender payload fields mirror `src/types.ts`. `status` is computed by the API from the
 latest `OffenderStatus`; labels map `IN_REVIEW → "In Parole Review"`,
@@ -166,9 +209,12 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 ## Tests
 
 - `src/auth/RequireAuth.test.tsx` — guard redirects unauthenticated users to `/login`,
-  renders children when authenticated.
+  renders children when authenticated; `RequireSubscription` renders children when the group is
+  subscribed and the paywall when not.
 - `src/pages/OffenderList.test.tsx` — smoke test: mocked offender hooks render the table,
-  status badges, search box, and empty state.
+  status badges, search box, and empty state; a subscription-403 query error renders the paywall.
+- `src/pages/Paywall.test.tsx` — renders the subscription message + Subscribe button; a successful
+  checkout redirects to `checkout_url`; a failure renders an error banner.
 - `src/pages/Settings.test.tsx` — renders account details, the featured Operating State row
   (state name + flag icon) below the group name, and both email-alert toggles
   (status-change alerts + weekly summary report); each toggle reflects its setting and

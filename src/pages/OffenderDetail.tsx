@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useOffender, useOffenderStatuses } from '../api/offenders'
+import { isSubscriptionError } from '../auth/subscription'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { Spinner } from '../components/Spinner'
 import { StatusBadge } from '../components/StatusBadge'
 import type { OffenderStatus } from '../types'
 import { cn, extractErrorMessage, formatDate, formatDateTime, formatMonthYear, normalizeStatus } from '../utils'
+import Paywall from './Paywall'
 
 const nextReviewBgStyles: Record<Exclude<OffenderStatus, 'Approved'>, string> = {
   'In Parole Review': 'border-blue-200 bg-blue-100',
@@ -24,6 +26,7 @@ export default function OffenderDetail() {
   const { data: offender, isLoading, isError, error } = useOffender(id)
   const statuses = useOffenderStatuses(id)
 
+  if (isSubscriptionError(error)) return <Paywall />
   if (isLoading) return <Spinner label="Loading offender…" />
   if (isError || !offender) return <ErrorBanner message={extractErrorMessage(error, 'Failed to load offender')} />
 

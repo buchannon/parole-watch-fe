@@ -8,6 +8,7 @@ export interface UserSettings {
 export interface GroupSetting {
   name: string
   operating_state: string
+  is_subscribed: boolean
 }
 
 export interface AuthUser {

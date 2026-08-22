@@ -14,6 +14,10 @@ vi.mock('../api/offenders', () => ({
   useUnfollowOffender: vi.fn(),
 }))
 
+vi.mock('./Paywall', () => ({
+  default: () => <div>paywall-stub</div>,
+}))
+
 const mockUseOffenders = vi.mocked(offendersApi.useOffenders)
 const mockUseCreateOffender = vi.mocked(offendersApi.useCreateOffender)
 const mockUseUnfollowOffender = vi.mocked(offendersApi.useUnfollowOffender)
@@ -151,6 +155,21 @@ describe('OffenderList', () => {
     mockUseOffenders.mockReturnValue(mockQueryResult({ data: [] }))
     renderList()
     expect(screen.getByText('No offenders yet. Add one to start tracking.')).toBeInTheDocument()
+  })
+
+  it('renders the paywall when the offender query returns a subscription 403', () => {
+    mockUseOffenders.mockReturnValue(
+      mockQueryResult({
+        data: undefined,
+        isError: true,
+        error: {
+          isAxiosError: true,
+          response: { status: 403, data: { detail: 'Your group subscription is not active.' } },
+        },
+      }),
+    )
+    renderList()
+    expect(screen.getByText('paywall-stub')).toBeInTheDocument()
   })
 
   it('sorts by status ascending by default so approved offenders are on top', () => {

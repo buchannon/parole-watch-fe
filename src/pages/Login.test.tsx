@@ -29,6 +29,7 @@ function authValue(overrides: Partial<AuthContextValue> = {}): AuthContextValue 
     login: vi.fn().mockResolvedValue(authUser),
     logout: vi.fn(),
     setUser: vi.fn(),
+    refreshUser: vi.fn().mockResolvedValue(authUser),
     ...overrides,
   }
 }

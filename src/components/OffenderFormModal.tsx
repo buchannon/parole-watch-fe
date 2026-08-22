@@ -1,16 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { useCreateOffender } from '../api/offenders'
+import { isSubscriptionError } from '../auth/subscription'
 import { buttonSecondaryClass, buttonPrimaryClass, extractErrorMessage, inputClass } from '../utils'
 import { ErrorBanner } from './ErrorBanner'
 import { Modal } from './Modal'
 
 interface OffenderFormModalProps {
   onClose: () => void
+  onSubscriptionError?: () => void
 }
 
 const fieldLabelClass = 'mb-1 block text-sm font-medium text-gray-700'
 
-export function OffenderFormModal({ onClose }: OffenderFormModalProps) {
+export function OffenderFormModal({ onClose, onSubscriptionError }: OffenderFormModalProps) {
   const createOffender = useCreateOffender()
   const [error, setError] = useState<string | null>(null)
   const pending = createOffender.isPending
@@ -22,7 +24,13 @@ export function OffenderFormModal({ onClose }: OffenderFormModalProps) {
     const tdcjNumber = String(form.get('tdcj_number') ?? '').trim()
     createOffender.mutate(tdcjNumber, {
       onSuccess: onClose,
-      onError: (err) => setError(extractErrorMessage(err, 'Failed to add offender')),
+      onError: (err) => {
+        if (isSubscriptionError(err)) {
+          onSubscriptionError?.()
+          return
+        }
+        setError(extractErrorMessage(err, 'Failed to add offender'))
+      },
     })
   }
 

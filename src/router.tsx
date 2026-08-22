@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { RedirectIfAuthed, RequireAuth } from './auth/RequireAuth'
+import { RedirectIfAuthed, RequireAuth, RequireSubscription } from './auth/RequireAuth'
 import Layout from './pages/Layout'
 import Login from './pages/Login'
 import NotFound from './pages/NotFound'
@@ -15,8 +15,10 @@ export function AppRoutes() {
       <Route path="/signup" element={<Signup />} />
       <Route element={<RequireAuth><Layout /></RequireAuth>}>
         <Route path="/" element={<Navigate to="/offenders" replace />} />
-        <Route path="/offenders" element={<OffenderList />} />
-        <Route path="/offenders/:id" element={<OffenderDetail />} />
+        <Route element={<RequireSubscription />}>
+          <Route path="/offenders" element={<OffenderList />} />
+          <Route path="/offenders/:id" element={<OffenderDetail />} />
+        </Route>
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<NotFound />} />
