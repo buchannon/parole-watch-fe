@@ -1,25 +1,31 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorBanner } from '../components/ErrorBanner'
+import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 import { extractErrorMessage, inputClass } from '../utils'
 
 const fieldLabelClass = 'mb-1 block text-sm font-medium text-gray-700'
 
+const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY
+
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const turnstileRef = useRef<TurnstileHandle>(null)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [turnstileFailed, setTurnstileFailed] = useState(false)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
-      await login(username.trim(), password)
+      const token = TURNSTILE_SITEKEY ? (await turnstileRef.current?.execute()) ?? '' : ''
+      await login(username.trim(), password, token)
       navigate('/offenders', { replace: true })
     } catch (err) {
       setError(extractErrorMessage(err, 'Login failed'))
@@ -66,6 +72,14 @@ export default function Login() {
               className={inputClass}
             />
           </div>
+          {TURNSTILE_SITEKEY && (
+            <div className="flex justify-center">
+              <Turnstile ref={turnstileRef} sitekey={TURNSTILE_SITEKEY} action="login" onError={() => setTurnstileFailed(true)} />
+            </div>
+          )}
+          {turnstileFailed && (
+            <p className="text-center text-xs text-red-600">Security verification unavailable. Please try again.</p>
+          )}
           <button
             type="submit"
             disabled={submitting}

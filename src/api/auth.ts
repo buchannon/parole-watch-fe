@@ -3,8 +3,14 @@ import { api } from './client'
 import { logInfo, logWarn } from './logger'
 import type { AuthUser, UserSettings } from '../types'
 
-export async function loginRequest(username: string, password: string): Promise<AuthUser> {
-  const { data } = await api.post<AuthUser>('/auth/login/', { username, password })
+export async function loginRequest(
+  username: string,
+  password: string,
+  cfTurnstileResponse?: string,
+): Promise<AuthUser> {
+  const payload: Record<string, string> = { username, password }
+  if (cfTurnstileResponse) payload.cf_turnstile_response = cfTurnstileResponse
+  const { data } = await api.post<AuthUser>('/auth/login/', payload)
   return data
 }
 

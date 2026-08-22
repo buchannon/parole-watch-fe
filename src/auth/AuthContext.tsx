@@ -7,7 +7,7 @@ export interface AuthContextValue {
   user: AuthUser | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (username: string, password: string) => Promise<void>
+  login: (username: string, password: string, cfTurnstileResponse?: string) => Promise<void>
   logout: () => Promise<void>
   setUser: (user: AuthUser | null) => void
 }
@@ -35,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async (username: string, password: string) => {
-    const authUser = await loginRequest(username, password)
+  const login = useCallback(async (username: string, password: string, cfTurnstileResponse?: string) => {
+    const authUser = await loginRequest(username, password, cfTurnstileResponse)
     logInfo('Login succeeded', username)
     setUser(authUser)
   }, [])

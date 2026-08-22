@@ -35,7 +35,7 @@ src/
     signup.ts         useSignup (public lead-form POST to /signup/)
     offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
   auth/             AuthContext (user state, login/logout/me), RequireAuth + RedirectIfAuthed guards
-  components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, forms
+  components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, forms
   pages/            Login, Signup, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
   states.ts         US state code → {name, flag} map (`US_STATES`) + `getState()`
@@ -75,7 +75,7 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 ### Auth
 | Method | Path                  | Body                    | Notes |
 | ------ | --------------------- | ----------------------- | ----- |
-| POST   | `/api/auth/login/`    | `{username, password}`  | sets access+refresh httpOnly cookies; returns `{username, email, name, groups: string[], group_settings, settings}`; 401 on bad creds |
+| POST   | `/api/auth/login/`    | `{username, password, cf_turnstile_response?}`  | sets access+refresh httpOnly cookies; returns `{username, email, name, groups: string[], group_settings, settings}`; 401 on bad creds; 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set) |
 | POST   | `/api/auth/logout/`   |                         | clears cookies |
 | POST   | `/api/auth/refresh/`  |                         | refreshes access cookie from refresh cookie |
 | GET    | `/api/auth/me/`       |                         | returns `{username, email, name, groups: string[], group_settings, settings}`; 401 if not authenticated |
@@ -85,7 +85,7 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 ### Signup (public, no auth)
 | Method | Path            | Body                                  | Notes |
 | ------ | --------------- | ------------------------------------- | ----- |
-| POST   | `/api/signup/`  | `{name, email, description}`          | `AllowAny`; emails a hardcoded recipient with the lead. DRF-style field errors on missing/invalid input. Not yet implemented in the backend — the Signup page shows an error banner until it lands. |
+| POST   | `/api/signup/`  | `{name, email, description, cf_turnstile_response?}`          | `AllowAny`; emails a hardcoded recipient with the lead. DRF-style field errors on missing/invalid input; 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set). |
 
 `name` is the user's full name (falls back to username). `groups` are the current user's
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
@@ -104,6 +104,24 @@ Settings page are independent; toggling either only affects that setting.
 
 CSRF: mutations require an `X-CSRFToken` header taken from the `csrftoken` cookie (set at
 login). Done automatically by the axios request interceptor in `src/api/client.ts`.
+
+### Turnstile anti-spam
+
+Login and Signup render `src/components/Turnstile.tsx` — an invisible Cloudflare
+Turnstile widget (non-interactive `execution: 'execute'`) that lazily loads
+`challenges.cloudflare.com`'s script and exposes an `execute()` imperative handle
+returning the token. The sitekey comes from `VITE_TURNSTILE_SITEKEY` (baked in at
+build time via the deploy workflow's `Build` step secret; unset locally means the
+widget is skipped entirely and forms submit without a token). Each form passes a
+stable `action` to the widget (`login` on the Login page, `signup` on the Signup
+page) which the backend requires back from siteverify. The token is sent as
+`cf_turnstile_response` in the login/signup POST body. The component degrades
+gracefully when the script is blocked (empty token, form still submits) — the
+backend only enforces verification when its `TURNSTILE_SECRET_KEY` env var is set,
+so dev/test flows are unchanged. Backend verification lives in
+`parole-watch-api`'s `parole_watch/utils/turnstile.py` (`verify_turnstile`,
+fail-closed, checks `success` + `action` + hostname allowlist) and is wired into
+`LoginView` and `SignupView`.
 
 ### Offenders
 | Method | Path                            | Notes |
@@ -158,6 +176,10 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 - `src/pages/Signup.test.tsx` — renders the pricing headline, 3 benefit bullets, and
   Name/Email/Description fields; submit fires the `useSignup` mutation with the entered
   values; success shows the thank-you state.
+- `src/pages/Login.test.tsx` — renders the username/password fields, submits credentials
+  through the auth context, and shows an error banner on failure. Both Login/Signup tests
+  mock `../components/Turnstile` (a no-op stub) since the real widget needs a sitekey +
+  script that jsdom doesn't provide.
 
 ## Deploy
 
@@ -170,7 +192,8 @@ over SSH (`jshomoek@jshowers.com:21098`) with `--exclude='api/' --exclude='cgi-b
 
 GitHub secrets required: `DEPLOY_SSH_KEY` (ed25519 deploy key, public half in
 `~/.ssh/authorized_keys` on the server), `DEPLOY_SSH_HOST` = `jshowers.com`,
-`DEPLOY_SSH_PORT` = `21098`, `DEPLOY_SSH_USER` = `jshomoek`.
+`DEPLOY_SSH_PORT` = `21098`, `DEPLOY_SSH_USER` = `jshomoek`, plus
+`VITE_TURNSTILE_SITEKEY` (public Cloudflare Turnstile sitekey, injected into the Build step).
 
 **⚠️ Never touch `public_html/`** — it is the WordPress blog at `https://jshowers.com/`.
 The real docroot for the parole-watch site is **not** `public_html`. It is the domain's

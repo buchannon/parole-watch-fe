@@ -8,6 +8,10 @@ vi.mock('../api/signup', () => ({
   useSignup: vi.fn(),
 }))
 
+vi.mock('../components/Turnstile', () => ({
+  Turnstile: () => <div data-testid="turnstile" />,
+}))
+
 const mockUseSignup = vi.mocked(signupApi.useSignup)
 
 function mockMutation(): any {
@@ -36,7 +40,7 @@ describe('Signup', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(3)
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Tell me briefly about your business/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Briefly describe your needs/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Request pricing' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
   })
@@ -45,7 +49,7 @@ describe('Signup', () => {
     const { mutate } = renderSignup()
     fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'Jane Doe' } })
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'jane@example.com' } })
-    fireEvent.change(screen.getByLabelText(/Tell me briefly about your business/i), {
+    fireEvent.change(screen.getByLabelText(/Briefly describe your needs/i), {
       target: { value: 'I run a law office.' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Request pricing' }))

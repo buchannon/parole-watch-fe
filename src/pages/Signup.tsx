@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useSignup } from '../api/signup'
 import { ErrorBanner } from '../components/ErrorBanner'
+import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 import { buttonPrimaryClass, extractErrorMessage, inputClass } from '../utils'
 
 const fieldLabelClass = 'mb-1 block text-sm font-medium text-gray-700'
+
+const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY
 
 const BENEFITS = [
   'Automatically monitor the parole status of any Texas offender — no more manual daily checks.',
@@ -14,16 +17,24 @@ const BENEFITS = [
 
 export default function Signup() {
   const signup = useSignup()
+  const turnstileRef = useRef<TurnstileHandle>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [turnstileFailed, setTurnstileFailed] = useState(false)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
+    const token = TURNSTILE_SITEKEY ? (await turnstileRef.current?.execute()) ?? '' : ''
     signup.mutate(
-      { name: name.trim(), email: email.trim(), description: description.trim() },
+      {
+        name: name.trim(),
+        email: email.trim(),
+        description: description.trim(),
+        ...(token ? { cf_turnstile_response: token } : {}),
+      },
       {
         onError: (err) => setError(extractErrorMessage(err, 'Failed to send your request. Please try again.')),
       },
@@ -105,6 +116,14 @@ export default function Signup() {
               className={inputClass}
             />
           </div>
+          {TURNSTILE_SITEKEY && (
+            <div className="flex justify-center">
+              <Turnstile ref={turnstileRef} sitekey={TURNSTILE_SITEKEY} action="signup" onError={() => setTurnstileFailed(true)} />
+            </div>
+          )}
+          {turnstileFailed && (
+            <p className="text-center text-xs text-red-600">Security verification unavailable. Please try again.</p>
+          )}
           <button type="submit" disabled={signup.isPending} className={`${buttonPrimaryClass} w-full`}>
             {signup.isPending ? 'Sending…' : 'Request pricing'}
           </button>

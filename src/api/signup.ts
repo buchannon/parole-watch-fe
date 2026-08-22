@@ -6,6 +6,7 @@ export interface SignupPayload {
   name: string
   email: string
   description: string
+  cf_turnstile_response?: string
 }
 
 export function useSignup() {
