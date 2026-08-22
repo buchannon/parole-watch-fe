@@ -93,7 +93,7 @@ export default function Signup() {
           </div>
           <div>
             <label htmlFor="description" className={fieldLabelClass}>
-              Tell me briefly about your business and what you spend the most amount of work-time doing.
+              Briefly describe your needs
             </label>
             <textarea
               id="description"
