@@ -63,7 +63,6 @@ describe('Signup', () => {
 
   it('renders the headline, benefits list, and form fields', () => {
     renderSignup()
-    expect(screen.getByText('Sign up here.')).toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(3)
     expect(screen.getByLabelText('Name')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()

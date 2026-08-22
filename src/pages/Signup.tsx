@@ -53,8 +53,7 @@ export default function Signup() {
       <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="text-center text-2xl font-bold text-gray-900">Parole Watch</h1>
         <p className="mt-1 text-center text-sm text-gray-500">Offender status tracking for Texas parolees</p>
-        <h2 className="mt-6 text-center text-lg font-semibold text-gray-900">Sign up here.</h2>
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-6 space-y-2">
           {BENEFITS.map((benefit) => (
             <li key={benefit} className="flex gap-2 text-sm text-gray-600">
               <span className="text-blue-600">•</span>
@@ -62,7 +61,8 @@ export default function Signup() {
             </li>
           ))}
         </ul>
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <hr className="my-6 border-gray-200" />
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && <ErrorBanner message={error} />}
           <div>
             <label htmlFor="name" className={fieldLabelClass}>
