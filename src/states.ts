@@ -1,0 +1,61 @@
+export interface StateInfo {
+  name: string
+  flag: string
+}
+
+export const US_STATES: Record<string, StateInfo> = {
+  AL: { name: 'Alabama', flag: '/flags/al.svg' },
+  AK: { name: 'Alaska', flag: '/flags/ak.svg' },
+  AZ: { name: 'Arizona', flag: '/flags/az.svg' },
+  AR: { name: 'Arkansas', flag: '/flags/ar.svg' },
+  CA: { name: 'California', flag: '/flags/ca.svg' },
+  CO: { name: 'Colorado', flag: '/flags/co.svg' },
+  CT: { name: 'Connecticut', flag: '/flags/ct.svg' },
+  DE: { name: 'Delaware', flag: '/flags/de.svg' },
+  FL: { name: 'Florida', flag: '/flags/fl.svg' },
+  GA: { name: 'Georgia', flag: '/flags/ga.svg' },
+  HI: { name: 'Hawaii', flag: '/flags/hi.svg' },
+  ID: { name: 'Idaho', flag: '/flags/id.svg' },
+  IL: { name: 'Illinois', flag: '/flags/il.svg' },
+  IN: { name: 'Indiana', flag: '/flags/in.svg' },
+  IA: { name: 'Iowa', flag: '/flags/ia.svg' },
+  KS: { name: 'Kansas', flag: '/flags/ks.svg' },
+  KY: { name: 'Kentucky', flag: '/flags/ky.svg' },
+  LA: { name: 'Louisiana', flag: '/flags/la.svg' },
+  ME: { name: 'Maine', flag: '/flags/me.svg' },
+  MD: { name: 'Maryland', flag: '/flags/md.svg' },
+  MA: { name: 'Massachusetts', flag: '/flags/ma.svg' },
+  MI: { name: 'Michigan', flag: '/flags/mi.svg' },
+  MN: { name: 'Minnesota', flag: '/flags/mn.svg' },
+  MS: { name: 'Mississippi', flag: '/flags/ms.svg' },
+  MO: { name: 'Missouri', flag: '/flags/mo.svg' },
+  MT: { name: 'Montana', flag: '/flags/mt.svg' },
+  NE: { name: 'Nebraska', flag: '/flags/ne.svg' },
+  NV: { name: 'Nevada', flag: '/flags/nv.svg' },
+  NH: { name: 'New Hampshire', flag: '/flags/nh.svg' },
+  NJ: { name: 'New Jersey', flag: '/flags/nj.svg' },
+  NM: { name: 'New Mexico', flag: '/flags/nm.svg' },
+  NY: { name: 'New York', flag: '/flags/ny.svg' },
+  NC: { name: 'North Carolina', flag: '/flags/nc.svg' },
+  ND: { name: 'North Dakota', flag: '/flags/nd.svg' },
+  OH: { name: 'Ohio', flag: '/flags/oh.svg' },
+  OK: { name: 'Oklahoma', flag: '/flags/ok.svg' },
+  OR: { name: 'Oregon', flag: '/flags/or.svg' },
+  PA: { name: 'Pennsylvania', flag: '/flags/pa.svg' },
+  RI: { name: 'Rhode Island', flag: '/flags/ri.svg' },
+  SC: { name: 'South Carolina', flag: '/flags/sc.svg' },
+  SD: { name: 'South Dakota', flag: '/flags/sd.svg' },
+  TN: { name: 'Tennessee', flag: '/flags/tn.svg' },
+  TX: { name: 'Texas', flag: '/flags/tx.svg' },
+  UT: { name: 'Utah', flag: '/flags/ut.svg' },
+  VT: { name: 'Vermont', flag: '/flags/vt.svg' },
+  VA: { name: 'Virginia', flag: '/flags/va.svg' },
+  WA: { name: 'Washington', flag: '/flags/wa.svg' },
+  WV: { name: 'West Virginia', flag: '/flags/wv.svg' },
+  WI: { name: 'Wisconsin', flag: '/flags/wi.svg' },
+  WY: { name: 'Wyoming', flag: '/flags/wy.svg' },
+}
+
+export function getState(code: string | undefined): StateInfo | undefined {
+  return code ? US_STATES[code.toUpperCase()] : undefined
+}

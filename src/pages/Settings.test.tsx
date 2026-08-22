@@ -20,6 +20,7 @@ const initialUser: AuthUser = {
   email: 'admin@example.com',
   name: 'Admin',
   groups: ['Test Group'],
+  group_settings: [{ name: 'Test Group', operating_state: 'TX' }],
   settings: {
     receive_email_alerts_for_offender_status_changes: true,
     receive_offender_summary_report: true,
@@ -68,6 +69,19 @@ describe('Settings', () => {
     expect(screen.getByText('admin@example.com')).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: /receive email alerts/i })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: /weekly offender summary report/i })).toBeInTheDocument()
+  })
+
+  it('renders the operating state with its state flag below the group name', () => {
+    renderSettings()
+    expect(screen.getByText('Test Group')).toBeInTheDocument()
+    expect(screen.getByText('Operating State: Texas')).toBeInTheDocument()
+    expect(screen.getByAltText('Texas flag')).toHaveAttribute('src', '/flags/tx.svg')
+  })
+
+  it('omits the operating state when the group has no setting', () => {
+    renderSettings({ ...initialUser, group_settings: [] })
+    expect(screen.getByText('Test Group')).toBeInTheDocument()
+    expect(screen.queryByText(/operating state/i)).not.toBeInTheDocument()
   })
 
   it('reflects the enabled setting and fires the mutation when toggled off', () => {

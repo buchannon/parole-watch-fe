@@ -38,10 +38,12 @@ src/
   components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, forms
   pages/            Login, Signup, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
+  states.ts         US state code → {name, flag} map (`US_STATES`) + `getState()`
   types.ts          TS interfaces mirroring the API payloads
   utils.ts          classnames helper, date/status formatters, error extraction
   App.tsx           QueryClientProvider + BrowserRouter + AuthProvider
   main.tsx          entry (ReactDOM + ErrorBoundary)
+public/flags/       Vendored US state flag SVGs (`<code>.svg`, Wikimedia Commons) served at `/flags/<code>.svg`
 ```
 
 ## Conventions
@@ -73,10 +75,10 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 ### Auth
 | Method | Path                  | Body                    | Notes |
 | ------ | --------------------- | ----------------------- | ----- |
-| POST   | `/api/auth/login/`    | `{username, password}`  | sets access+refresh httpOnly cookies; returns `{username, email, name, groups: string[]}`; 401 on bad creds |
+| POST   | `/api/auth/login/`    | `{username, password}`  | sets access+refresh httpOnly cookies; returns `{username, email, name, groups: string[], group_settings, settings}`; 401 on bad creds |
 | POST   | `/api/auth/logout/`   |                         | clears cookies |
 | POST   | `/api/auth/refresh/`  |                         | refreshes access cookie from refresh cookie |
-| GET    | `/api/auth/me/`       |                         | returns `{username, email, name, groups: string[]}`; 401 if not authenticated |
+| GET    | `/api/auth/me/`       |                         | returns `{username, email, name, groups: string[], group_settings, settings}`; 401 if not authenticated |
 | GET    | `/api/auth/settings/` |                         | returns `UserSettings`; 401 if not authenticated |
 | PATCH  | `/api/auth/settings/` | partial `UserSettings`  | values must be booleans; returns the full updated `UserSettings` |
 
@@ -87,6 +89,13 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 
 `name` is the user's full name (falls back to username). `groups` are the current user's
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
+
+`group_settings` is a read-only per-group settings list
+(`[{name: <group>, operating_state: <US state code>}]`, ordered by group name, scoped to the
+caller's groups; groups without a row are omitted). The Settings page shows the **first** group's
+Operating State as a featured row below the group name — the state name + its flag icon
+(`getState()` in `src/states.ts`; flag SVGs served from `/flags/<code>.svg`). Not editable on the
+Settings page — the API has no write endpoint for group settings.
 
 `settings` is `{receive_email_alerts_for_offender_status_changes: boolean,
 receive_offender_summary_report: boolean}` (both default true) and is included in the
@@ -142,7 +151,8 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   renders children when authenticated.
 - `src/pages/OffenderList.test.tsx` — smoke test: mocked offender hooks render the table,
   status badges, search box, and empty state.
-- `src/pages/Settings.test.tsx` — renders account details and both email-alert toggles
+- `src/pages/Settings.test.tsx` — renders account details, the featured Operating State row
+  (state name + flag icon) below the group name, and both email-alert toggles
   (status-change alerts + weekly summary report); each toggle reflects its setting and
   fires a partial PATCH mutation when flipped.
 - `src/pages/Signup.test.tsx` — renders the pricing headline, 3 benefit bullets, and

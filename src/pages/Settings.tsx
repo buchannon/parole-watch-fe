@@ -1,6 +1,7 @@
 import { useAuth } from '../auth/AuthContext'
 import { useUpdateSettings } from '../api/auth'
 import { Spinner } from '../components/Spinner'
+import { getState } from '../states'
 import { cn } from '../utils'
 import type { UserSettings } from '../types'
 
@@ -13,6 +14,7 @@ export default function Settings() {
 
   const emailAlertsEnabled = user.settings?.receive_email_alerts_for_offender_status_changes ?? true
   const summaryReportEnabled = user.settings?.receive_offender_summary_report ?? true
+  const operatingState = getState(user.group_settings?.[0]?.operating_state)
 
   const handleToggle = (key: keyof UserSettings, checked: boolean) => {
     const previous = user
@@ -32,6 +34,18 @@ export default function Settings() {
       <section className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-gray-700">Group</h2>
         <p className="mt-2 text-sm text-gray-900">{user.groups.join(', ') || '—'}</p>
+        {operatingState && (
+          <div className="mt-2 flex items-center gap-2">
+            <img
+              src={operatingState.flag}
+              alt={`${operatingState.name} flag`}
+              className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
+            />
+            <span className="text-sm font-medium text-gray-900">
+              Operating State: {operatingState.name}
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="rounded-lg border border-gray-200 bg-white p-4">

@@ -5,11 +5,17 @@ export interface UserSettings {
   receive_offender_summary_report: boolean
 }
 
+export interface GroupSetting {
+  name: string
+  operating_state: string
+}
+
 export interface AuthUser {
   username: string
   email: string
   name: string
   groups: string[]
+  group_settings: GroupSetting[]
   settings: UserSettings
 }
 
