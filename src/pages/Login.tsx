@@ -90,7 +90,7 @@ export default function Login() {
         </form>
         <p className="mt-6 text-center text-sm text-gray-500">
           <Link to="/signup" className="font-medium text-blue-600 hover:underline">
-            Want to sign up? Contact me for pricing.
+            Sign up here.
           </Link>
         </p>
       </div>

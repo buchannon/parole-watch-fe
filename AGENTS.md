@@ -32,7 +32,7 @@ src/
     client.ts         axios instance, baseURL '/api', CSRF header, 401 handling
     logger.ts         logInfo / logWarn / logError helpers
     auth.ts           login / logout / me requests
-    signup.ts         useSignup (public lead-form POST to /signup/)
+    signup.ts         useSignup (public account-signup POST to /signup/)
     offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
   auth/             AuthContext (user state, login/logout/me), RequireAuth + RedirectIfAuthed guards
   components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, forms
@@ -85,7 +85,7 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 ### Signup (public, no auth)
 | Method | Path            | Body                                  | Notes |
 | ------ | --------------- | ------------------------------------- | ----- |
-| POST   | `/api/signup/`  | `{name, email, description, cf_turnstile_response?}`          | `AllowAny`; emails a hardcoded recipient with the lead. DRF-style field errors on missing/invalid input; 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set). |
+| POST   | `/api/signup/`  | `{name, email, law_firm_name, cf_turnstile_response?}`          | `AllowAny`; creates a new group (law firm name) + new user (name/email, username = email) in one transaction, emails the user a generated password + notifies the owner, then auto-logs in (sets the JWT cookies) and returns **201** with the same `{username, email, name, groups, group_settings, settings}` payload as login. DRF-style field errors on missing/invalid input; 400 on duplicate email or duplicate firm name; 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set). |
 
 `name` is the user's full name (falls back to username). `groups` are the current user's
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
@@ -103,7 +103,7 @@ login/me payloads too. PATCH is partial — send only the changed key. The two t
 Settings page are independent; toggling either only affects that setting.
 
 CSRF: mutations require an `X-CSRFToken` header taken from the `csrftoken` cookie (set at
-login). Done automatically by the axios request interceptor in `src/api/client.ts`.
+login and signup). Done automatically by the axios request interceptor in `src/api/client.ts`.
 
 ### Turnstile anti-spam
 
@@ -173,9 +173,9 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   (state name + flag icon) below the group name, and both email-alert toggles
   (status-change alerts + weekly summary report); each toggle reflects its setting and
   fires a partial PATCH mutation when flipped.
-- `src/pages/Signup.test.tsx` — renders the pricing headline, 3 benefit bullets, and
-  Name/Email/Description fields; submit fires the `useSignup` mutation with the entered
-  values; success shows the thank-you state.
+- `src/pages/Signup.test.tsx` — renders the signup headline, 3 benefit bullets, and
+  Name/Email/Law firm name fields; submit fires the `useSignup` mutation with the entered
+  values; success auto-logs the user in (sets the auth user) and navigates to `/offenders`.
 - `src/pages/Login.test.tsx` — renders the username/password fields, submits credentials
   through the auth context, and shows an error banner on failure. Both Login/Signup tests
   mock `../components/Turnstile` (a no-op stub) since the real widget needs a sitekey +

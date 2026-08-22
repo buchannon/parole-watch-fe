@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import { useSignup } from '../api/signup'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
@@ -17,10 +18,12 @@ const BENEFITS = [
 
 export default function Signup() {
   const signup = useSignup()
+  const { setUser } = useAuth()
+  const navigate = useNavigate()
   const turnstileRef = useRef<TurnstileHandle>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [description, setDescription] = useState('')
+  const [lawFirmName, setLawFirmName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [turnstileFailed, setTurnstileFailed] = useState(false)
 
@@ -32,26 +35,16 @@ export default function Signup() {
       {
         name: name.trim(),
         email: email.trim(),
-        description: description.trim(),
+        law_firm_name: lawFirmName.trim(),
         ...(token ? { cf_turnstile_response: token } : {}),
       },
       {
-        onError: (err) => setError(extractErrorMessage(err, 'Failed to send your request. Please try again.')),
+        onSuccess: (user) => {
+          setUser(user)
+          navigate('/offenders', { replace: true })
+        },
+        onError: (err) => setError(extractErrorMessage(err, 'Failed to create your account. Please try again.')),
       },
-    )
-  }
-
-  if (signup.isSuccess) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-xl font-bold text-gray-900">Thanks, {name.split(' ')[0] || 'there'}!</h1>
-          <p className="mt-2 text-sm text-gray-500">Your request has been sent. I&apos;ll get back to you about pricing.</p>
-          <Link to="/login" className={`${buttonPrimaryClass} mt-6`}>
-            Back to sign in
-          </Link>
-        </div>
-      </div>
     )
   }
 
@@ -60,7 +53,7 @@ export default function Signup() {
       <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="text-center text-2xl font-bold text-gray-900">Parole Watch</h1>
         <p className="mt-1 text-center text-sm text-gray-500">Offender status tracking for Texas parolees</p>
-        <h2 className="mt-6 text-center text-lg font-semibold text-gray-900">Want to sign up? Contact me for pricing.</h2>
+        <h2 className="mt-6 text-center text-lg font-semibold text-gray-900">Sign up here.</h2>
         <ul className="mt-4 space-y-2">
           {BENEFITS.map((benefit) => (
             <li key={benefit} className="flex gap-2 text-sm text-gray-600">
@@ -103,16 +96,17 @@ export default function Signup() {
             />
           </div>
           <div>
-            <label htmlFor="description" className={fieldLabelClass}>
-              Briefly describe your needs
+            <label htmlFor="lawFirmName" className={fieldLabelClass}>
+              Law firm name
             </label>
-            <textarea
-              id="description"
-              name="description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
+            <input
+              id="lawFirmName"
+              name="law_firm_name"
+              type="text"
+              value={lawFirmName}
+              onChange={(event) => setLawFirmName(event.target.value)}
               required
-              rows={4}
+              autoComplete="organization"
               className={inputClass}
             />
           </div>
@@ -125,7 +119,7 @@ export default function Signup() {
             <p className="text-center text-xs text-red-600">Security verification unavailable. Please try again.</p>
           )}
           <button type="submit" disabled={signup.isPending} className={`${buttonPrimaryClass} w-full`}>
-            {signup.isPending ? 'Sending…' : 'Request pricing'}
+            {signup.isPending ? 'Signing up…' : 'Sign up'}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-gray-500">
