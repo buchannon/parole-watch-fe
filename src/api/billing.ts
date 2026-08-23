@@ -18,3 +18,15 @@ export function useCreateCheckoutSession() {
     },
   })
 }
+
+export function useCreateBillingPortalSession() {
+  return useMutation({
+    mutationFn: () => api.post<{ url: string }>('/billing/portal/').then((res) => res.data),
+    onSuccess: () => {
+      logInfo('Billing portal session created')
+    },
+    onError: (error) => {
+      logWarn('Failed to create billing portal session', error)
+    },
+  })
+}

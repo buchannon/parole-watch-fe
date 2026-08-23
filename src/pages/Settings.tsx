@@ -1,13 +1,19 @@
+import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { isSubscribed } from '../auth/subscription'
 import { useUpdateSettings } from '../api/auth'
+import { useCreateBillingPortalSession } from '../api/billing'
+import { ErrorBanner } from '../components/ErrorBanner'
 import { Spinner } from '../components/Spinner'
 import { getState } from '../states'
-import { cn } from '../utils'
+import { buttonPrimaryClass, cn, extractErrorMessage } from '../utils'
 import type { UserSettings } from '../types'
 
 export default function Settings() {
   const { user, isLoading, setUser } = useAuth()
   const updateSettings = useUpdateSettings()
+  const billingPortal = useCreateBillingPortalSession()
+  const [billingError, setBillingError] = useState<string | null>(null)
 
   if (isLoading) return <Spinner label="Loading settings…" />
   if (!user) return null
@@ -24,6 +30,17 @@ export default function Settings() {
     })
     updateSettings.mutate({ [key]: checked } as Partial<UserSettings>, {
       onError: () => previous && setUser(previous),
+    })
+  }
+
+  const handleManageSubscription = () => {
+    setBillingError(null)
+    billingPortal.mutate(undefined, {
+      onSuccess: (session) => {
+        window.location.assign(session.url)
+      },
+      onError: (err) =>
+        setBillingError(extractErrorMessage(err, 'Unable to open billing management. Please try again.')),
     })
   }
 
@@ -47,6 +64,31 @@ export default function Settings() {
           </div>
         )}
       </section>
+
+      {isSubscribed(user) && (
+        <section className="rounded-lg border border-gray-200 bg-white p-4">
+          <h2 className="text-sm font-semibold text-gray-700">Subscription</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            Manage your plan, payment method, invoices, or cancel your subscription.
+          </p>
+          {billingError && (
+            <div className="mt-3">
+              <ErrorBanner message={billingError} onDismiss={() => setBillingError(null)} />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleManageSubscription}
+            disabled={billingPortal.isPending}
+            className={`${buttonPrimaryClass} mt-3`}
+          >
+            {billingPortal.isPending ? 'Opening billing…' : 'Manage subscription & billing'}
+          </button>
+          <p className="mt-2 text-xs text-gray-500">
+            Billing is handled securely by Stripe. You will be returned here when you are done.
+          </p>
+        </section>
+      )}
 
       <section className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-gray-700">Your account</h2>

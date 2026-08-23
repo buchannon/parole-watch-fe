@@ -138,6 +138,7 @@ fail-closed, checks `success` + `action` + hostname allowlist) and is wired into
 | Method | Path                     | Notes |
 | ------ | ------------------------ | ----- |
 | POST   | `/api/billing/checkout/` | authenticated; creates a Stripe Checkout Session for the user's group subscription and returns `{checkout_url, session_id}`; 400 `{"detail": "..."}` on no groups / billing unconfigured / Stripe error. **Not** subscription-gated — it is how an unsubscribed user pays. |
+| POST   | `/api/billing/portal/`   | authenticated; creates a Stripe Customer Portal session for the user's group and returns `{url}` (self-service manage/cancel subscription, payment methods, invoices). 400 `{"detail": "..."}` on no groups / no Stripe customer / unconfigured / Stripe error. **Not** subscription-gated — an unsubscribed user may still need it to re-subscribe or fix payment. |
 | POST   | `/api/stripe/webhook/`   | unauthenticated, signature-verified; Stripe server-to-server only. Flips `is_subscribed` on `checkout.session.completed` + subscription lifecycle events. The front-end never calls it. |
 
 ### Subscription gating (paywall)
@@ -284,7 +285,10 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 - `src/pages/Settings.test.tsx` — renders account details, the featured Operating State row
   (state name + flag icon) below the group name, and both email-alert toggles
   (status-change alerts + weekly summary report); each toggle reflects its setting and
-  fires a partial PATCH mutation when flipped.
+  fires a partial PATCH mutation when flipped. For subscribed groups the Settings page also
+  shows a **Subscription** section with a "Manage subscription & billing" button that runs
+  `useCreateBillingPortalSession()` and redirects to the Stripe Customer Portal `url`
+  (hidden when unsubscribed; failures render an error banner).
 - `src/pages/Signup.test.tsx` — renders the signup headline, 3 benefit bullets, and
   Name/Email/Law firm name fields; submit fires the `useSignup` mutation with the entered
   values; success auto-logs the user in (sets the auth user) and navigates to `/offenders`.

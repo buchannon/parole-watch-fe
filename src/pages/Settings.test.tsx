@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as authApi from '../api/auth'
+import * as billingApi from '../api/billing'
 import { AuthContext, type AuthContextValue } from '../auth/AuthContext'
 import type { AuthUser } from '../types'
 import Settings from './Settings'
@@ -13,7 +14,13 @@ vi.mock('../api/auth', () => ({
   useUpdateSettings: vi.fn(),
 }))
 
+vi.mock('../api/billing', () => ({
+  useCreateCheckoutSession: vi.fn(),
+  useCreateBillingPortalSession: vi.fn(),
+}))
+
 const mockUseUpdateSettings = vi.mocked(authApi.useUpdateSettings)
+const mockUseCreateBillingPortalSession = vi.mocked(billingApi.useCreateBillingPortalSession)
 
 const initialUser: AuthUser = {
   username: 'admin',
@@ -55,8 +62,16 @@ function renderSettings(user: AuthUser = initialUser) {
     error: null,
   } as any)
 
+  const portalMutate = vi.fn()
+  mockUseCreateBillingPortalSession.mockReturnValue({
+    mutate: portalMutate,
+    mutateAsync: vi.fn(),
+    isPending: false,
+    error: null,
+  } as any)
+
   render(<Harness />)
-  return { mutate }
+  return { mutate, portalMutate }
 }
 
 describe('Settings', () => {
@@ -135,5 +150,46 @@ describe('Settings', () => {
       'aria-checked',
       'false',
     )
+  })
+
+  it('shows the manage subscription button for a subscribed group', () => {
+    renderSettings()
+    expect(
+      screen.getByRole('button', { name: /manage subscription & billing/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('hides the manage subscription button when unsubscribed', () => {
+    renderSettings({
+      ...initialUser,
+      group_settings: [{ name: 'Test Group', operating_state: 'TX', is_subscribed: false }],
+    })
+    expect(
+      screen.queryByRole('button', { name: /manage subscription & billing/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('redirects to the portal when manage subscription is clicked', () => {
+    const { portalMutate } = renderSettings()
+    const assign = vi.fn()
+    Object.defineProperty(window, 'location', {
+      value: { assign },
+      writable: true,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /manage subscription & billing/i }))
+
+    expect(portalMutate).toHaveBeenCalledWith(undefined, expect.anything())
+    const options = portalMutate.mock.calls[0][1]
+    options.onSuccess({ url: 'https://billing.stripe.com/session/test' })
+    expect(assign).toHaveBeenCalledWith('https://billing.stripe.com/session/test')
+  })
+
+  it('shows an error banner when opening billing management fails', async () => {
+    const { portalMutate } = renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: /manage subscription & billing/i }))
+    const options = portalMutate.mock.calls[0][1]
+    options.onError(new Error('billing unconfigured'))
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
   })
 })
