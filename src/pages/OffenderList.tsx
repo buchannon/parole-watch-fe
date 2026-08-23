@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useOffenders, useUnfollowOffender } from '../api/offenders'
 import { isSubscriptionError } from '../auth/subscription'
 import { DataTable, type Column, type SortState } from '../components/DataTable'
+import { BulkImportModal } from '../components/BulkImportModal'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { OffenderFormModal } from '../components/OffenderFormModal'
 import { Spinner } from '../components/Spinner'
@@ -10,6 +11,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import type { Offender, OffenderFilters, OffenderStatus } from '../types'
 import {
   buttonPrimaryClass,
+  buttonSecondaryClass,
   buttonSmallSecondaryClass,
   cn,
   extractErrorMessage,
@@ -101,6 +103,7 @@ export default function OffenderList() {
   const [showMain, setShowMain] = useState(true)
   const [showApproved, setShowApproved] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [showBulkImport, setShowBulkImport] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [paywall, setPaywall] = useState(false)
 
@@ -198,9 +201,14 @@ export default function OffenderList() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Offenders</h1>
-        <button type="button" onClick={() => setShowAdd(true)} className={buttonPrimaryClass}>
-          Follow new offender
-        </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setShowBulkImport(true)} className={buttonSecondaryClass}>
+            Import list
+          </button>
+          <button type="button" onClick={() => setShowAdd(true)} className={buttonPrimaryClass}>
+            Follow new offender
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -276,6 +284,9 @@ export default function OffenderList() {
 
       {showAdd && (
         <OffenderFormModal onClose={() => setShowAdd(false)} onSubscriptionError={() => setPaywall(true)} />
+      )}
+      {showBulkImport && (
+        <BulkImportModal onClose={() => setShowBulkImport(false)} onSubscriptionError={() => setPaywall(true)} />
       )}
     </div>
   )

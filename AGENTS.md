@@ -35,10 +35,12 @@ src/
     signup.ts         useSignup (public account-signup POST to /signup/)
     billing.ts        useCreateCheckoutSession (POST /billing/checkout/ → {checkout_url, session_id})
     offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
+    bulkImport.ts     useCreateBulkImport + useBulkImportJob (poll-driven bulk import, see below)
   auth/             AuthContext (user state, login/logout/me/refreshUser), RequireAuth + RedirectIfAuthed
                     guards, RequireSubscription (paywall Outlet guard), subscription helpers
     subscription.ts   isSubscribed(user) + isSubscriptionError(error) + SUBSCRIPTION_INACTIVE_DETAIL
   components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, forms
+  bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
   pages/            Login, Signup, Paywall, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
   states.ts         US state code → {name, flag} map (`US_STATES`) + `getState()`
@@ -171,6 +173,8 @@ mid-session).
 | GET    | `/api/offenders/{id}/`          | detail (read-only) |
 | POST   | `/api/offenders/{id}/unfollow/` | removes only the caller's group link; never deletes offender data |
 | GET    | `/api/offenders/{id}/statuses/` | status history, newest first; items `{id, status, created, edited}` |
+| POST   | `/api/offenders/bulk_import/`   | `{tdcj_numbers: string[]}`; starts a poll-driven bulk import job (see below); whole-batch 400 on over-capacity or no valid numbers |
+| GET    | `/api/offenders/bulk_import/{id}/` | **process-on-poll**: while running, each fetch advances the job one item; returns the job snapshot |
 
 **All offender endpoints return 403 `{"detail": "Your group subscription is not active."}` until
 subscribed** (superusers bypass). A user with no groups now gets 403 on offender endpoints too
@@ -219,6 +223,47 @@ Status badges use the daily summary-report email color scheme: Approved green
 text-blue-800`), Not in Parole Review gray (`bg-gray-100 text-gray-800`), Unknown
 red (`bg-red-100 text-red-700`).
 
+### Bulk import (poll-driven job)
+
+The Offenders page header has an **Import list** button that opens
+`src/components/BulkImportModal.tsx` — a 4-stage modal:
+
+1. **Input** — a `<textarea>` for pasting a loose list of TDCJ numbers (new
+   lines, commas, spaces or semicolons). `parseTdcjList()` (`src/bulkImport.ts`)
+   splits on `/[\s,;]+/`, keeps only tokens matching `/^\d{8}$/`, and dedupes —
+   live count line shows "N valid · M entries ignored (not 8 digits or
+   duplicate)".
+2. **Confirmation** — a scrollable mono list of exactly the numbers that will
+   be imported (the required pre-flight check), with a note that already-followed
+   offenders are linked without a fresh scrape. "Import N" calls
+   `useCreateBulkImport()`.
+3. **Progress** — `useBulkImportJob(id, enabled)` polls `GET
+   /api/offenders/bulk_import/{id}/` every ~3s (`refetchInterval`) while
+   `status === 'running'`, rendering "Importing X of N…" plus a live per-item
+   status list. The poll GET is intentionally **process-on-poll**: each fetch
+   advances the job one item server-side, so the job only progresses while the
+   modal is open (keep-it-open notice is shown). Items are always in submission
+   order — the API returns them by the backend's `BulkImportItem.position`
+   (`Meta.ordering`), and the modal additionally stable-sorts non-pending items
+   above `pending` ones (`orderedItems`) so processed rows sit at the top and
+   queued rows at the bottom.
+4. **Report** — when `status === 'completed'` the modal invalidates
+   `offenderKeys.all` and shows the grouped outcome: **Added / Already followed /
+   Not found / Failed** (each listing its numbers; failed rows include the
+   reason), then a Done button closes.
+
+The job snapshot is
+`{id, status, created, completed_at, summary: {added, already_followed, not_found, failed}, items: [{tdcj_number, status, detail}]}`.
+Item statuses: `pending` → `processing` → terminal `added | already_followed |
+not_found | failed`. Semantics per item (all server-side): an existing offender
+already linked to the caller's groups → `already_followed` (no scrape); an
+existing offender missing links → links added, `added` (no scrape); a new
+offender → TDCJ search (none → `not_found`), row created + scraped → `added`;
+lookup errors → `failed`. The whole batch is rejected with a 400 before any work
+if it would push any of the caller's groups past the 120-offender cap
+(`MAX_OFFENDERS_PER_GROUP`). A 403 on create or poll is a subscription error →
+the page renders `<Paywall />` like the other offender mutations.
+
 ### Errors
 DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 `extractErrorMessage()` (in `src/utils.ts`) to turn these into UI messages.
@@ -247,6 +292,18 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   through the auth context, and shows an error banner on failure. Both Login/Signup tests
   mock `../components/Turnstile` (a no-op stub) since the real widget needs a sitekey +
   script that jsdom doesn't provide.
+- `src/bulkImport.test.ts` — `parseTdcjList()`: newline/comma/space (and semicolon)
+  separators, non-8-digit entries dropped, duplicates deduped preserving first-seen
+  order, blank input → empty.
+- `src/components/BulkImportModal.test.tsx` — live valid/dropped count while typing,
+  Continue disabled with no valid numbers, the confirmation step lists the numbers,
+  "Import N" fires `useCreateBulkImport` with the validated list, progress renders
+  per-item statuses from the poll, completion shows the grouped report and invalidates
+  `offenderKeys.all`, a create 400 shows an error banner, and a subscription 403 on
+  create triggers `onSubscriptionError`.
+- `src/pages/OffenderList.test.tsx` (bulk-import cases) — the "Import list" header
+  button opens the bulk import modal. The test file mocks `../api/bulkImport` so the
+  modal renders without a real poll.
 
 ## Deploy
 

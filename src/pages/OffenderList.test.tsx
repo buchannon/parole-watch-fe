@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as bulkImportApi from '../api/bulkImport'
 import * as offendersApi from '../api/offenders'
 import type { Offender } from '../types'
 import OffenderList from './OffenderList'
@@ -14,6 +15,11 @@ vi.mock('../api/offenders', () => ({
   useUnfollowOffender: vi.fn(),
 }))
 
+vi.mock('../api/bulkImport', () => ({
+  useCreateBulkImport: vi.fn(),
+  useBulkImportJob: vi.fn(),
+}))
+
 vi.mock('./Paywall', () => ({
   default: () => <div>paywall-stub</div>,
 }))
@@ -21,6 +27,8 @@ vi.mock('./Paywall', () => ({
 const mockUseOffenders = vi.mocked(offendersApi.useOffenders)
 const mockUseCreateOffender = vi.mocked(offendersApi.useCreateOffender)
 const mockUseUnfollowOffender = vi.mocked(offendersApi.useUnfollowOffender)
+const mockUseCreateBulkImport = vi.mocked(bulkImportApi.useCreateBulkImport)
+const mockUseBulkImportJob = vi.mocked(bulkImportApi.useBulkImportJob)
 
 const offenders: Offender[] = [
   {
@@ -126,6 +134,8 @@ describe('OffenderList', () => {
     mockUseOffenders.mockReturnValue(mockQueryResult())
     mockUseCreateOffender.mockReturnValue(mockMutation())
     mockUseUnfollowOffender.mockReturnValue(mockMutation())
+    mockUseCreateBulkImport.mockReturnValue(mockMutation())
+    mockUseBulkImportJob.mockReturnValue({ data: undefined, isLoading: false, isError: false, error: null } as any)
   })
 
   afterEach(() => {
@@ -153,6 +163,14 @@ describe('OffenderList', () => {
     renderList()
     expect(screen.getByLabelText('Search offenders')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Follow new offender' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Import list' })).toBeInTheDocument()
+  })
+
+  it('opens the bulk import modal from the import list button', () => {
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: 'Import list' }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('Bulk import offenders')
+    expect(screen.getByLabelText('TDCJ numbers')).toBeInTheDocument()
   })
 
   it('shows an empty state when there are no offenders', () => {

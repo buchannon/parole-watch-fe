@@ -58,3 +58,29 @@ export interface OffenderFilters {
   active?: string
   ordering?: string
 }
+
+export type BulkImportItemStatus = 'pending' | 'processing' | 'already_followed' | 'added' | 'not_found' | 'failed'
+
+export interface BulkImportItem {
+  tdcj_number: string
+  status: BulkImportItemStatus
+  detail: string
+}
+
+export interface BulkImportSummary {
+  added: number
+  already_followed: number
+  not_found: number
+  failed: number
+}
+
+export type BulkImportJobStatus = 'pending' | 'running' | 'completed' | 'failed'
+
+export interface BulkImportJob {
+  id: string
+  status: BulkImportJobStatus
+  created: string
+  completed_at: string | null
+  summary: BulkImportSummary
+  items: BulkImportItem[]
+}
