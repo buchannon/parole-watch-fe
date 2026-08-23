@@ -96,8 +96,8 @@ function SectionToggle({
 export default function OffenderList() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [mainSort, setMainSort] = useState<SortState>({ key: 'name', direction: 'asc' })
-  const [approvedSort, setApprovedSort] = useState<SortState>({ key: 'name', direction: 'asc' })
+  const [mainSort, setMainSort] = useState<SortState>({ key: 'nextReview', direction: 'asc' })
+  const [approvedSort, setApprovedSort] = useState<SortState>({ key: 'nextReview', direction: 'asc' })
   const [showMain, setShowMain] = useState(true)
   const [showApproved, setShowApproved] = useState(false)
   const [showAdd, setShowAdd] = useState(false)

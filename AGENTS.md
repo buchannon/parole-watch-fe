@@ -196,7 +196,9 @@ temp offender created by `useCreateOffender` is invisible until the refetch land
 Searching shows a combined "N results for …" line above the sections. Each section has
 its own `SortState` and is sorted client-side by `compareOffenders()` (name/TDCJ via
 `localeCompare`, next-review date with undated rows last, status by the API's order),
-so the two tables sort independently.
+so the two tables sort independently. Both sections default to
+`{key: 'nextReview', direction: 'asc'}` — next parole review month ascending, undated
+rows at the bottom — until the user clicks a column header.
 `next_parole_review_date` is always the 1st of the month (the day is meaningless) and
 null when unknown — the UI renders it month/year only via `formatMonthYear()` (e.g.
 `2027-03-01 → "03/2027"`) and `—` when null. It appears as the "Next review" sortable

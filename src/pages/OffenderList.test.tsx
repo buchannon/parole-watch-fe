@@ -234,13 +234,14 @@ describe('OffenderList', () => {
     expect(screen.getByText('3 results for "jane"')).toBeInTheDocument()
   })
 
-  it('does not send status or ordering filters and defaults to ascending name sort', () => {
+  it('does not send status or ordering filters and defaults to ascending next-review sort', () => {
     renderList()
     const filters = mockUseOffenders.mock.calls[0][0]
     expect(filters).toMatchObject({ active: 'true' })
     expect(filters).not.toHaveProperty('status')
     expect(filters).not.toHaveProperty('ordering')
-    expect(screen.getByRole('columnheader', { name: /Name/i })).toHaveAttribute('aria-sort', 'ascending')
+    expect(screen.getByRole('columnheader', { name: /Next review/i })).toHaveAttribute('aria-sort', 'ascending')
+    expect(screen.getByRole('columnheader', { name: /Name/i })).not.toHaveAttribute('aria-sort')
   })
 
   it('sorts the active table client-side on header clicks', () => {
@@ -249,20 +250,23 @@ describe('OffenderList', () => {
     expect(rowNames(container)).toEqual(['Jane Doe', 'John Smith'])
 
     fireEvent.click(nameHeader)
+    expect(rowNames(container)).toEqual(['Jane Doe', 'John Smith'])
+    expect(screen.getByRole('columnheader', { name: /Name/i })).toHaveAttribute('aria-sort', 'ascending')
+
+    fireEvent.click(nameHeader)
     expect(rowNames(container)).toEqual(['John Smith', 'Jane Doe'])
     expect(screen.getByRole('columnheader', { name: /Name/i })).toHaveAttribute('aria-sort', 'descending')
 
     fireEvent.click(nameHeader)
     expect(rowNames(container)).toEqual(['Jane Doe', 'John Smith'])
-    expect(screen.getByRole('columnheader', { name: /Name/i })).toHaveAttribute('aria-sort', 'ascending')
   })
 
   it('sorts by next parole review date on header click', () => {
     renderList()
     fireEvent.click(screen.getByRole('button', { name: /Next review/i }))
-    expect(screen.getByRole('columnheader', { name: /Next review/i })).toHaveAttribute('aria-sort', 'ascending')
-    fireEvent.click(screen.getByRole('button', { name: /Next review/i }))
     expect(screen.getByRole('columnheader', { name: /Next review/i })).toHaveAttribute('aria-sort', 'descending')
+    fireEvent.click(screen.getByRole('button', { name: /Next review/i }))
+    expect(screen.getByRole('columnheader', { name: /Next review/i })).toHaveAttribute('aria-sort', 'ascending')
   })
 
   it('keeps the approved table sort independent from the active table', () => {
@@ -271,7 +275,7 @@ describe('OffenderList', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: /Name/i })[1])
     const nameHeaders = screen.getAllByRole('columnheader', { name: /Name/i })
-    expect(nameHeaders[0]).toHaveAttribute('aria-sort', 'ascending')
-    expect(nameHeaders[1]).toHaveAttribute('aria-sort', 'descending')
+    expect(nameHeaders[0]).not.toHaveAttribute('aria-sort')
+    expect(nameHeaders[1]).toHaveAttribute('aria-sort', 'ascending')
   })
 })
