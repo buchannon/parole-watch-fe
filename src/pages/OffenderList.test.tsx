@@ -163,12 +163,12 @@ describe('OffenderList', () => {
     renderList()
     expect(screen.getByLabelText('Search offenders')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Follow new offender' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Import list' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bulk follow' })).toBeInTheDocument()
   })
 
-  it('opens the bulk import modal from the import list button', () => {
+  it('opens the bulk import modal from the bulk follow button', () => {
     renderList()
-    fireEvent.click(screen.getByRole('button', { name: 'Import list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bulk follow' }))
     expect(screen.getByRole('dialog')).toHaveTextContent('Bulk import offenders')
     expect(screen.getByLabelText('TDCJ numbers')).toBeInTheDocument()
   })

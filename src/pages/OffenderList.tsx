@@ -202,11 +202,11 @@ export default function OffenderList() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Offenders</h1>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setShowBulkImport(true)} className={buttonSecondaryClass}>
-            Import list
-          </button>
           <button type="button" onClick={() => setShowAdd(true)} className={buttonPrimaryClass}>
             Follow new offender
+          </button>
+          <button type="button" onClick={() => setShowBulkImport(true)} className={buttonSecondaryClass}>
+            Bulk follow
           </button>
         </div>
       </div>

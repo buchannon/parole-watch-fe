@@ -225,7 +225,7 @@ red (`bg-red-100 text-red-700`).
 
 ### Bulk import (poll-driven job)
 
-The Offenders page header has an **Import list** button that opens
+The Offenders page header has a **Bulk follow** button that opens
 `src/components/BulkImportModal.tsx` — a 4-stage modal:
 
 1. **Input** — a `<textarea>` for pasting a loose list of TDCJ numbers (new
@@ -301,7 +301,7 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   per-item statuses from the poll, completion shows the grouped report and invalidates
   `offenderKeys.all`, a create 400 shows an error banner, and a subscription 403 on
   create triggers `onSubscriptionError`.
-- `src/pages/OffenderList.test.tsx` (bulk-import cases) — the "Import list" header
+- `src/pages/OffenderList.test.tsx` (bulk-import cases) — the "Bulk follow" header
   button opens the bulk import modal. The test file mocks `../api/bulkImport` so the
   modal renders without a real poll.
 
