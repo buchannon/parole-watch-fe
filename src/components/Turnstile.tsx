@@ -6,8 +6,8 @@ export interface TurnstileHandle {
 
 interface TurnstileOptions {
   sitekey: string
-  size: 'invisible'
   execution: 'execute'
+  appearance: 'execute'
   action?: string
   callback: (token: string) => void
   'error-callback': () => void
@@ -101,8 +101,8 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
         if (!mounted || !containerRef.current || !window.turnstile) return
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey,
-          size: 'invisible',
           execution: 'execute',
+          appearance: 'execute',
           ...(action ? { action } : {}),
           callback: (token: string) => {
             tokenRef.current = token
