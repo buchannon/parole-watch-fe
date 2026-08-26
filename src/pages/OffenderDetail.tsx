@@ -34,7 +34,9 @@ export default function OffenderDetail() {
   if (isError || !offender) return <ErrorBanner message={extractErrorMessage(error, 'Failed to load offender')} />
 
   const normalizedStatus = normalizeStatus(offender.status)
-  const uploadedTypes = (templates.data ?? []).filter((entry) => entry.templates.some((template) => template.uploaded))
+  const uploadedTypes = (templates.data ?? []).filter(
+    (entry) => entry.template_type !== 'FEE_AFFIDAVIT' && entry.templates.some((template) => template.uploaded),
+  )
   const decision = offender.last_parole_decision.toLowerCase()
   const decisionStyle =
     decision === 'approved'

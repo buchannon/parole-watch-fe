@@ -308,6 +308,14 @@ server's friendly 404 is avoided by hiding). A subscription 403 on the catalog (
 OffenderDetail) renders `<Paywall />`; field-keyed 400s (e.g. `{"file": "Only .docx template files are supported."}`)
 render in the row's `ErrorBanner` via `extractErrorMessage()`.
 
+**Fee Affidavit is "coming soon".** The catalog still returns both types, but the front-end treats
+`FEE_AFFIDAVIT` as unavailable everywhere: on Settings the Fee Affidavit row is grayed out
+(`opacity-60`, muted label) with a "Coming soon" badge and an inert `Upload .pdf` button (a
+disabled-looking `<span aria-disabled>` — **no** file input, so no upload can fire, and no
+Download/Remove); `src/pages/OffenderDetail.tsx` filters `FEE_AFFIDAVIT` out of `uploadedTypes`
+so `Generate Fee Affidavit` never renders even when one is uploaded; and the OffenderList row
+kebab menu hardcodes `disabled: true` on **Download fee affidavit** regardless of template state.
+
 ### Errors
 DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 `extractErrorMessage()` (in `src/utils.ts`) to turn these into UI messages.
@@ -325,7 +333,8 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   client-side and independently; a subscription-403 query error renders the paywall; the row
   kebab menu (`../api/templates` mocked) opens to show Download letter of representation /
   Download fee affidavit / Unfollow, the download actions are disabled when no template is
-  uploaded and call `triggerDownload` with the generate URL when one is, and Unfollow fires the
+  uploaded and call `triggerDownload` with the generate URL when one is (Download fee affidavit
+  stays disabled even when uploaded), and Unfollow fires the
   mutation only after `window.confirm`.
 - `src/pages/Paywall.test.tsx` — renders the subscription message + Subscribe button; a successful
   checkout redirects to `checkout_url`; a failure renders an error banner.
@@ -338,12 +347,13 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   (hidden when unsubscribed; failures render an error banner). Document-templates cases (mocked
   `../api/templates`) render the per-type rows with upload state, fire the multipart upload
   mutation on file pick, link Download to the template URL, remove after confirm, show field-keyed
-  400 errors in a banner, expand the "Available fields" placeholder list, and render the paywall
-  in the section when unsubscribed.
+  400 errors in a banner, gray out the Fee Affidavit row as "Coming soon" with an inert `Upload
+  .pdf` that never opens a picker or fires an upload, expand the "Available fields" placeholder
+  list, and render the paywall in the section when unsubscribed.
 - `src/pages/OffenderDetail.test.tsx` — renders a "Generate <Label>" button per uploaded template
-  type (none when nothing is uploaded), clicking calls `triggerDownload` with the
-  `/templates/<type>/generate/?offender=<id>` URL, and a subscription-403 catalog error renders
-  the paywall.
+  type (none when nothing is uploaded, and never for Fee Affidavit even when uploaded), clicking
+  calls `triggerDownload` with the `/templates/<type>/generate/?offender=<id>` URL, and a
+  subscription-403 catalog error renders the paywall.
 - `src/pages/Signup.test.tsx` — renders the signup headline, 3 benefit bullets, and
   Name/Email/Law firm name fields; submit fires the `useSignup` mutation with the entered
   values; success auto-logs the user in (sets the auth user) and navigates to `/offenders`.

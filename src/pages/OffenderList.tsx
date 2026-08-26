@@ -194,7 +194,7 @@ export default function OffenderList() {
               },
               {
                 label: 'Download fee affidavit',
-                disabled: !hasTemplate('FEE_AFFIDAVIT'),
+                disabled: true,
                 onClick: () => triggerDownload(templateGenerateUrl('FEE_AFFIDAVIT', offender.id)),
               },
               { label: 'Unfollow', danger: true, onClick: () => handleUnfollow(offender) },

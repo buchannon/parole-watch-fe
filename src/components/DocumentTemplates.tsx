@@ -121,58 +121,80 @@ export function DocumentTemplates() {
         <p className="mt-3 text-sm text-gray-500">No document templates available for your account.</p>
       ) : (
         <div className="mt-3 divide-y divide-gray-200">
-          {rows.map((row) => (
-            <div
-              key={row.key}
-              className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900">{row.label}</p>
-                {multiGroup && <p className="text-xs text-gray-500">{row.template.group.name}</p>}
-                <p className="mt-1 text-xs text-gray-500">
-                  {row.template.uploaded
-                    ? `${row.template.file_name} · ${formatBytes(row.template.file_size ?? 0)} · ${formatDateTime(row.template.edited)}`
-                    : 'Not uploaded'}
-                </p>
-                {errors[row.key] && (
-                  <div className="mt-2">
-                    <ErrorBanner message={errors[row.key]} onDismiss={() => setErrors((previous) => ({ ...previous, [row.key]: '' }))} />
-                  </div>
-                )}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <input
-                  id={`template-file-${row.key}`}
-                  type="file"
-                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  className="sr-only"
-                  disabled={uploadTemplate.isPending}
-                  onChange={(event) => handleFileChange(event, row)}
-                />
-                <label
-                  htmlFor={`template-file-${row.key}`}
-                  className={`${buttonSecondaryClass} cursor-pointer ${uploadTemplate.isPending ? 'opacity-50' : ''}`}
-                >
-                  Upload .docx
-                </label>
-                {row.template.uploaded && row.template.id && (
-                  <>
-                    <a href={templateDownloadUrl(row.template.id)} className={buttonSmallSecondaryClass}>
-                      Download
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(row)}
-                      disabled={deleteTemplate.isPending}
-                      className={buttonSmallDangerClass}
+          {rows.map((row) => {
+            const comingSoon = row.template.template_type === 'FEE_AFFIDAVIT'
+            return (
+              <div
+                key={row.key}
+                className={`flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between ${comingSoon ? 'opacity-60' : ''}`}
+              >
+                <div className="min-w-0">
+                  <p className={`text-sm font-medium ${comingSoon ? 'text-gray-500' : 'text-gray-900'}`}>
+                    {row.label}
+                    {comingSoon && (
+                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                        Coming soon
+                      </span>
+                    )}
+                  </p>
+                  {multiGroup && <p className="text-xs text-gray-500">{row.template.group.name}</p>}
+                  <p className="mt-1 text-xs text-gray-500">
+                    {row.template.uploaded
+                      ? `${row.template.file_name} · ${formatBytes(row.template.file_size ?? 0)} · ${formatDateTime(row.template.edited)}`
+                      : 'Not uploaded'}
+                  </p>
+                  {errors[row.key] && (
+                    <div className="mt-2">
+                      <ErrorBanner message={errors[row.key]} onDismiss={() => setErrors((previous) => ({ ...previous, [row.key]: '' }))} />
+                    </div>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {comingSoon ? (
+                    <span
+                      className={`${buttonSecondaryClass} cursor-not-allowed opacity-50`}
+                      aria-disabled="true"
+                      title="Coming soon"
                     >
-                      Remove
-                    </button>
-                  </>
-                )}
+                      Upload .pdf
+                    </span>
+                  ) : (
+                    <>
+                      <input
+                        id={`template-file-${row.key}`}
+                        type="file"
+                        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="sr-only"
+                        disabled={uploadTemplate.isPending}
+                        onChange={(event) => handleFileChange(event, row)}
+                      />
+                      <label
+                        htmlFor={`template-file-${row.key}`}
+                        className={`${buttonSecondaryClass} cursor-pointer ${uploadTemplate.isPending ? 'opacity-50' : ''}`}
+                      >
+                        Upload .docx
+                      </label>
+                    </>
+                  )}
+                  {!comingSoon && row.template.uploaded && row.template.id && (
+                    <>
+                      <a href={templateDownloadUrl(row.template.id)} className={buttonSmallSecondaryClass}>
+                        Download
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(row)}
+                        disabled={deleteTemplate.isPending}
+                        className={buttonSmallDangerClass}
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

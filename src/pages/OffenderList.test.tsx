@@ -375,12 +375,13 @@ describe('OffenderList', () => {
     expect(mockTriggerDownload).toHaveBeenCalledWith('/api/templates/LETTER_OF_REPRESENTATION/generate/?offender=1')
   })
 
-  it('downloads the fee affidavit when its template is uploaded', () => {
+  it('keeps the fee affidavit download disabled even when its template is uploaded', () => {
     mockUseTemplateCatalog.mockReturnValue(mockQueryResult({ data: templateCatalog({ FEE_AFFIDAVIT: true }) }))
     renderList()
     fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /Download fee affidavit/i }))
-    expect(mockTriggerDownload).toHaveBeenCalledWith('/api/templates/FEE_AFFIDAVIT/generate/?offender=1')
+    expect(screen.getByRole('menuitem', { name: /Download fee affidavit/i })).toBeDisabled()
+    expect(mockTriggerDownload).not.toHaveBeenCalled()
   })
 
   it('unfollows the offender after confirmation', () => {

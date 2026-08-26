@@ -288,6 +288,17 @@ describe('Settings', () => {
       expect(screen.getAllByText('Not uploaded')).toHaveLength(1)
     })
 
+    it('grayes out the fee affidavit row as coming soon with an inactive .pdf upload', () => {
+      const { uploadMutate } = renderSettings()
+      expect(screen.getByText('Coming soon')).toBeInTheDocument()
+      const uploadPdf = screen.getByText('Upload .pdf')
+      expect(uploadPdf).toHaveAttribute('aria-disabled', 'true')
+      expect(screen.queryByLabelText('Upload .pdf')).not.toBeInTheDocument()
+      expect(screen.getAllByLabelText('Upload .docx')).toHaveLength(1)
+      fireEvent.click(uploadPdf)
+      expect(uploadMutate).not.toHaveBeenCalled()
+    })
+
     it('shows the group name per row when the user belongs to multiple groups', () => {
       renderSettings({
         ...initialUser,
@@ -302,14 +313,14 @@ describe('Settings', () => {
 
     it('fires the upload mutation with type, file, and group when a file is picked', () => {
       const { uploadMutate } = renderSettings()
-      const file = new File(['docx'], 'affidavit.docx', {
+      const file = new File(['docx'], 'letter.docx', {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       })
-      const input = screen.getAllByLabelText('Upload .docx')[1]
+      const input = screen.getAllByLabelText('Upload .docx')[0]
       fireEvent.change(input, { target: { files: [file] } })
 
       expect(uploadMutate).toHaveBeenCalledWith(
-        { templateType: 'FEE_AFFIDAVIT', file, groupId: 1 },
+        { templateType: 'LETTER_OF_REPRESENTATION', file, groupId: 1 },
         expect.anything(),
       )
     })
@@ -342,7 +353,7 @@ describe('Settings', () => {
           response: { status: 400, data: { file: ['Only .docx template files are supported.'] } },
         })
       })
-      fireEvent.change(screen.getAllByLabelText('Upload .docx')[1], {
+      fireEvent.change(screen.getAllByLabelText('Upload .docx')[0], {
         target: { files: [new File(['x'], 'bad.txt')] },
       })
       await waitFor(() =>

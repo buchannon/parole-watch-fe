@@ -115,6 +115,17 @@ describe('OffenderDetail', () => {
     expect(screen.queryByRole('button', { name: 'Generate Fee Affidavit' })).not.toBeInTheDocument()
   })
 
+  it('does not render a generate fee affidavit button even when that template is uploaded', () => {
+    const uploadedFee = catalog.map((entry) =>
+      entry.template_type === 'FEE_AFFIDAVIT'
+        ? { ...entry, templates: entry.templates.map((template) => ({ ...template, uploaded: true, id: 'tmpl-2' })) }
+        : entry,
+    )
+    renderDetail(mockQueryResult(uploadedFee))
+    expect(screen.queryByRole('button', { name: 'Generate Fee Affidavit' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generate Letter of Representation' })).toBeInTheDocument()
+  })
+
   it('triggers the generated document download with the offender id', () => {
     renderDetail()
     fireEvent.click(screen.getByRole('button', { name: 'Generate Letter of Representation' }))
