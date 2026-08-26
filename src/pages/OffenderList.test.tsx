@@ -360,6 +360,14 @@ describe('OffenderList', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
+  it('renders the kebab menu in a portal so it is not clipped by the table', () => {
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
+    const menu = screen.getByRole('menu')
+    expect(menu.closest('table')).toBeNull()
+    expect(menu.parentElement).toBe(document.body)
+  })
+
   it('disables document download actions when no template is uploaded', () => {
     renderList()
     fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))

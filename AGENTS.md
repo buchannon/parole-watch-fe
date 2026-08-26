@@ -223,7 +223,11 @@ when its URL is empty.
 
 Both offender tables have a trailing actions column holding a **kebab menu**
 (`src/components/RowActionsMenu.tsx` — a `⋮` trigger with a right-aligned
-`role="menu"`; closes on click-outside or `Escape`). Every row's menu always shows
+`role="menu"`; closes on click-outside or `Escape`). The open menu is rendered into a
+**`document.body` portal** (`createPortal` + `position: fixed`, `z-50`, viewport-flips
+above the row when it would overflow the bottom) so it is never clipped by the
+table's `overflow-x-auto` wrapper and paints above everything on the page; it closes
+on scroll/resize too. Every row's menu always shows
 **Download letter of representation**, **Download fee affidavit**, and **Unfollow**.
 The two download actions are rendered disabled (grayed, non-actionable) when the
 group has no uploaded template of that type (`useTemplateCatalog()` + `entry.templates.some(t =>
@@ -333,9 +337,9 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   client-side and independently; a subscription-403 query error renders the paywall; the row
   kebab menu (`../api/templates` mocked) opens to show Download letter of representation /
   Download fee affidavit / Unfollow, the download actions are disabled when no template is
-  uploaded and call `triggerDownload` with the generate URL when one is (Download fee affidavit
-  stays disabled even when uploaded), and Unfollow fires the
-  mutation only after `window.confirm`.
+  uploaded and call `triggerDownload` with the generate URL when one is, and Unfollow fires the
+  mutation only after `window.confirm`. The menu renders through a `document.body` portal
+  (asserted not to live inside the `<table>`).
 - `src/pages/Paywall.test.tsx` — renders the subscription message + Subscribe button; a successful
   checkout redirects to `checkout_url`; a failure renders an error banner.
 - `src/pages/Settings.test.tsx` — renders account details, the featured Operating State row
