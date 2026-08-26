@@ -1,23 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useOffenders, useUnfollowOffender } from '../api/offenders'
+import { templateGenerateUrl, triggerDownload, useTemplateCatalog } from '../api/templates'
 import { isSubscriptionError } from '../auth/subscription'
-import { DataTable, type Column, type SortState } from '../components/DataTable'
 import { BulkImportModal } from '../components/BulkImportModal'
+import { DataTable, type Column, type SortState } from '../components/DataTable'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { OffenderFormModal } from '../components/OffenderFormModal'
+import { RowActionsMenu } from '../components/RowActionsMenu'
 import { Spinner } from '../components/Spinner'
 import { StatusBadge } from '../components/StatusBadge'
-import type { Offender, OffenderFilters, OffenderStatus } from '../types'
-import {
-  buttonPrimaryClass,
-  buttonSecondaryClass,
-  buttonSmallSecondaryClass,
-  cn,
-  extractErrorMessage,
-  formatMonthYear,
-  inputClass,
-} from '../utils'
+import type { Offender, OffenderFilters, OffenderStatus, TemplateType } from '../types'
+import { buttonPrimaryClass, buttonSecondaryClass, cn, extractErrorMessage, formatMonthYear, inputClass } from '../utils'
 import Paywall from './Paywall'
 
 // Sort priority for the status column (mirrors the API's ordering): Approved
@@ -122,6 +116,12 @@ export default function OffenderList() {
 
   const { data: offenders, isLoading, isError, error } = useOffenders(filters)
   const unfollowOffender = useUnfollowOffender()
+  const templates = useTemplateCatalog()
+
+  const hasTemplate = (type: TemplateType) =>
+    (templates.data ?? []).some(
+      (entry) => entry.template_type === type && entry.templates.some((template) => template.uploaded),
+    )
 
   const handleUnfollow = (offender: Offender) => {
     if (!window.confirm(`Unfollow ${offender.display_name || offender.tdcj_number}? You will stop tracking this offender.`)) return
@@ -183,10 +183,23 @@ export default function OffenderList() {
       key: 'actions',
       header: '',
       render: (offender) => (
-        <div className="flex gap-2">
-          <button type="button" onClick={() => handleUnfollow(offender)} className={buttonSmallSecondaryClass}>
-            Unfollow
-          </button>
+        <div className="flex justify-end">
+          <RowActionsMenu
+            ariaLabel={`Actions for ${offender.display_name || offender.tdcj_number}`}
+            actions={[
+              {
+                label: 'Download letter of representation',
+                disabled: !hasTemplate('LETTER_OF_REPRESENTATION'),
+                onClick: () => triggerDownload(templateGenerateUrl('LETTER_OF_REPRESENTATION', offender.id)),
+              },
+              {
+                label: 'Download fee affidavit',
+                disabled: !hasTemplate('FEE_AFFIDAVIT'),
+                onClick: () => triggerDownload(templateGenerateUrl('FEE_AFFIDAVIT', offender.id)),
+              },
+              { label: 'Unfollow', danger: true, onClick: () => handleUnfollow(offender) },
+            ]}
+          />
         </div>
       ),
     },

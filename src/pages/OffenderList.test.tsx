@@ -4,7 +4,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as bulkImportApi from '../api/bulkImport'
 import * as offendersApi from '../api/offenders'
-import type { Offender } from '../types'
+import * as templatesApi from '../api/templates'
+import type { Offender, TemplateTypeEntry } from '../types'
 import OffenderList from './OffenderList'
 
 vi.mock('../api/offenders', () => ({
@@ -20,6 +21,12 @@ vi.mock('../api/bulkImport', () => ({
   useBulkImportJob: vi.fn(),
 }))
 
+vi.mock('../api/templates', () => ({
+  useTemplateCatalog: vi.fn(),
+  templateGenerateUrl: vi.fn(),
+  triggerDownload: vi.fn(),
+}))
+
 vi.mock('./Paywall', () => ({
   default: () => <div>paywall-stub</div>,
 }))
@@ -29,6 +36,9 @@ const mockUseCreateOffender = vi.mocked(offendersApi.useCreateOffender)
 const mockUseUnfollowOffender = vi.mocked(offendersApi.useUnfollowOffender)
 const mockUseCreateBulkImport = vi.mocked(bulkImportApi.useCreateBulkImport)
 const mockUseBulkImportJob = vi.mocked(bulkImportApi.useBulkImportJob)
+const mockUseTemplateCatalog = vi.mocked(templatesApi.useTemplateCatalog)
+const mockTemplateGenerateUrl = vi.mocked(templatesApi.templateGenerateUrl)
+const mockTriggerDownload = vi.mocked(templatesApi.triggerDownload)
 
 const offenders: Offender[] = [
   {
@@ -105,6 +115,39 @@ const offenders: Offender[] = [
   },
 ]
 
+function templateCatalog(uploaded: Partial<Record<'LETTER_OF_REPRESENTATION' | 'FEE_AFFIDAVIT', boolean>> = {}): TemplateTypeEntry[] {
+  const lor = uploaded.LETTER_OF_REPRESENTATION ?? false
+  const fee = uploaded.FEE_AFFIDAVIT ?? false
+  return [
+    {
+      template_type: 'LETTER_OF_REPRESENTATION',
+      label: 'Letter of Representation',
+      templates: [
+        {
+          group: { id: 1, name: 'Test Group' },
+          template_type: 'LETTER_OF_REPRESENTATION',
+          label: 'Letter of Representation',
+          uploaded: lor,
+          ...(lor ? { id: 'tmpl-lor' } : {}),
+        },
+      ],
+    },
+    {
+      template_type: 'FEE_AFFIDAVIT',
+      label: 'Fee Affidavit',
+      templates: [
+        {
+          group: { id: 1, name: 'Test Group' },
+          template_type: 'FEE_AFFIDAVIT',
+          label: 'Fee Affidavit',
+          uploaded: fee,
+          ...(fee ? { id: 'tmpl-fee' } : {}),
+        },
+      ],
+    },
+  ]
+}
+
 function mockQueryResult(overrides: Record<string, unknown> = {}): any {
   return { data: offenders, isLoading: false, isError: false, error: null, ...overrides }
 }
@@ -136,10 +179,14 @@ describe('OffenderList', () => {
     mockUseUnfollowOffender.mockReturnValue(mockMutation())
     mockUseCreateBulkImport.mockReturnValue(mockMutation())
     mockUseBulkImportJob.mockReturnValue({ data: undefined, isLoading: false, isError: false, error: null } as any)
+    mockUseTemplateCatalog.mockReturnValue(mockQueryResult({ data: templateCatalog() }))
+    mockTemplateGenerateUrl.mockImplementation((type, id) => `/api/templates/${type}/generate/?offender=${id}`)
+    mockTriggerDownload.mockReturnValue(undefined as never)
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('renders active offender rows (In Review / Not in Review) and hides approved offenders', () => {
@@ -295,5 +342,65 @@ describe('OffenderList', () => {
     const nameHeaders = screen.getAllByRole('columnheader', { name: /Name/i })
     expect(nameHeaders[0]).not.toHaveAttribute('aria-sort')
     expect(nameHeaders[1]).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('opens the row kebab menu with download and unfollow actions', () => {
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
+    expect(screen.getByRole('menuitem', { name: /Download letter of representation/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Download fee affidavit/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Unfollow' })).toBeInTheDocument()
+  })
+
+  it('closes the kebab menu on Escape', () => {
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('disables document download actions when no template is uploaded', () => {
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
+    expect(screen.getByRole('menuitem', { name: /Download letter of representation/i })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: /Download fee affidavit/i })).toBeDisabled()
+  })
+
+  it('downloads the letter of representation when its template is uploaded', () => {
+    mockUseTemplateCatalog.mockReturnValue(mockQueryResult({ data: templateCatalog({ LETTER_OF_REPRESENTATION: true }) }))
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Download letter of representation/i }))
+    expect(mockTriggerDownload).toHaveBeenCalledWith('/api/templates/LETTER_OF_REPRESENTATION/generate/?offender=1')
+  })
+
+  it('downloads the fee affidavit when its template is uploaded', () => {
+    mockUseTemplateCatalog.mockReturnValue(mockQueryResult({ data: templateCatalog({ FEE_AFFIDAVIT: true }) }))
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Download fee affidavit/i }))
+    expect(mockTriggerDownload).toHaveBeenCalledWith('/api/templates/FEE_AFFIDAVIT/generate/?offender=1')
+  })
+
+  it('unfollows the offender after confirmation', () => {
+    const mutation = mockMutation()
+    mockUseUnfollowOffender.mockReturnValue(mutation)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Unfollow' }))
+    expect(window.confirm).toHaveBeenCalled()
+    expect(mutation.mutate).toHaveBeenCalledWith('1', expect.any(Object))
+  })
+
+  it('does not unfollow when confirmation is cancelled', () => {
+    const mutation = mockMutation()
+    mockUseUnfollowOffender.mockReturnValue(mutation)
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderList()
+    fireEvent.click(screen.getByRole('button', { name: /Actions for Jane Doe/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Unfollow' }))
+    expect(mutation.mutate).not.toHaveBeenCalled()
   })
 })

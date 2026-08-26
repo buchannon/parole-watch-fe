@@ -41,7 +41,7 @@ src/
   auth/             AuthContext (user state, login/logout/me/refreshUser), RequireAuth + RedirectIfAuthed
                     guards, RequireSubscription (paywall Outlet guard), subscription helpers
     subscription.ts   isSubscribed(user) + isSubscriptionError(error) + SUBSCRIPTION_INACTIVE_DETAIL
-  components/       Modal, StatusBadge, DataTable, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, forms
+  components/       Modal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, forms
   bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
   pages/            Login, Signup, Paywall, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
@@ -221,6 +221,18 @@ fields grid. It shows two external links that open in a new tab: "View profile"
 (`profile_url`) and "View parole details" (`parole_details_url`); each renders `—`
 when its URL is empty.
 
+Both offender tables have a trailing actions column holding a **kebab menu**
+(`src/components/RowActionsMenu.tsx` — a `⋮` trigger with a right-aligned
+`role="menu"`; closes on click-outside or `Escape`). Every row's menu always shows
+**Download letter of representation**, **Download fee affidavit**, and **Unfollow**.
+The two download actions are rendered disabled (grayed, non-actionable) when the
+group has no uploaded template of that type (`useTemplateCatalog()` + `entry.templates.some(t =>
+t.uploaded)`); when enabled they run `triggerDownload(templateGenerateUrl(type,
+offender.id))`, same as the detail view's Documents buttons. **Unfollow** keeps the
+existing `window.confirm` + `useUnfollowOffender()` flow. The catalog query runs
+unconditionally (like OffenderDetail); a catalog subscription 403 just leaves the
+download actions disabled — the offender query already gates the page to the Paywall.
+
 Status badges use the daily summary-report email color scheme: Approved green
 (`bg-green-100 text-green-800`), In Parole Review blue (`bg-blue-100
 text-blue-800`), Not in Parole Review gray (`bg-gray-100 text-gray-800`), Unknown
@@ -310,7 +322,11 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   default, collapsible), `Approved` offenders hidden behind a collapsed-by-default
   "Offenders approved for parole" toggle that sits below the main grid; `Unknown` offenders
   are hidden; both section counts and the search-results line are shown; each table sorts
-  client-side and independently; a subscription-403 query error renders the paywall.
+  client-side and independently; a subscription-403 query error renders the paywall; the row
+  kebab menu (`../api/templates` mocked) opens to show Download letter of representation /
+  Download fee affidavit / Unfollow, the download actions are disabled when no template is
+  uploaded and call `triggerDownload` with the generate URL when one is, and Unfollow fires the
+  mutation only after `window.confirm`.
 - `src/pages/Paywall.test.tsx` — renders the subscription message + Subscribe button; a successful
   checkout redirects to `checkout_url`; a failure renders an error banner.
 - `src/pages/Settings.test.tsx` — renders account details, the featured Operating State row
