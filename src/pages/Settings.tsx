@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { isSubscribed } from '../auth/subscription'
 import { useUpdateSettings } from '../api/auth'
 import { useCreateBillingPortalSession } from '../api/billing'
+import { DocumentTemplates } from '../components/DocumentTemplates'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { Spinner } from '../components/Spinner'
 import { getState } from '../states'
@@ -103,6 +104,8 @@ export default function Settings() {
           </div>
         </dl>
       </section>
+
+      <DocumentTemplates />
 
       <section className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-gray-700">Email alerts</h2>

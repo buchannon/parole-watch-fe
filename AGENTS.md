@@ -36,6 +36,8 @@ src/
     billing.ts        useCreateCheckoutSession (POST /billing/checkout/ → {checkout_url, session_id})
     offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
     bulkImport.ts     useCreateBulkImport + useBulkImportJob (poll-driven bulk import, see below)
+    templates.ts      useTemplateCatalog / useTemplatePlaceholders / useUploadTemplate / useDeleteTemplate,
+                      templateDownloadUrl / templateGenerateUrl URL builders + triggerDownload helper (see below)
   auth/             AuthContext (user state, login/logout/me/refreshUser), RequireAuth + RedirectIfAuthed
                     guards, RequireSubscription (paywall Outlet guard), subscription helpers
     subscription.ts   isSubscribed(user) + isSubscriptionError(error) + SUBSCRIPTION_INACTIVE_DETAIL
@@ -265,6 +267,35 @@ if it would push any of the caller's groups past the 120-offender cap
 (`MAX_OFFENDERS_PER_GROUP`). A 403 on create or poll is a subscription error →
 the page renders `<Paywall />` like the other offender mutations.
 
+### Document templates (per-group .docx)
+
+The Settings page has a **Document Templates** section (`src/components/DocumentTemplates.tsx`) and
+OffenderDetail has a **Documents** section with one "Generate <Label>" button per uploaded type.
+All template endpoints are auth + CSRF gated and 403 (paywall) for unsubscribed groups; 401
+unauthenticated. Files download as browser attachments — never read as JSON. The type set is
+FIXED: `LETTER_OF_REPRESENTATION` and `FEE_AFFIDAVIT` only.
+
+| Method | Path                                          | Notes |
+| ------ | --------------------------------------------- | ----- |
+| GET    | `/api/templates/`                             | static catalog: one entry per template type, each with one object per group the user belongs to (`{group: {id, name}, template_type, label, uploaded}`; `uploaded: true` adds `id`, `file_name`, `file_size`, `edited`) |
+| POST   | `/api/templates/`                             | multipart `{template_type, file, group_id?}` (group_id defaults to the caller's first group); 201 on first upload, 200 when replacing; returns the uploaded object |
+| GET    | `/api/templates/<uuid>/`                      | download the uploaded ORIGINAL .docx (attachment) |
+| DELETE | `/api/templates/<uuid>/`                      | remove the template (row + file), 204; 404 if not the caller's group's |
+| GET    | `/api/templates/<type>/generate/?offender=<uuid>` | stream the filled .docx (attachment, `"<Label> - <Name or TDCJ>.docx"`); 404 when no template uploaded / offender not in the caller's groups; 400 without `?offender`; picks the caller's first subscribed group that has the template |
+| GET    | `/api/templates/placeholders/`                | `[{name, label}]` list of `{{ double_braces }}` merge fields (name, first_name, last_name, tdcj_number, sid_number, …, gender, title, his_her, firm_name, today) for the "Available fields" hint on Settings. `title`/`his_her` derive from gender (`Mr.`/`Ms.`, `his`/`her`; blank when unknown), `first_name`/`last_name` are the title-cased split of the TDCJ name, and `today` renders as `August 14, 2026` |
+
+`src/api/templates.ts` exposes `useTemplateCatalog(enabled)` / `useTemplatePlaceholders(enabled)`
+(the Settings section passes `isSubscribed(user)` so unsubscribed users skip the 403s),
+`useUploadTemplate` (multipart FormData; invalidates the catalog on success) and
+`useDeleteTemplate`. Downloads are plain GETs, so no CSRF: the Settings Download link is a real
+`<a href={templateDownloadUrl(id)}>` and the generate buttons call
+`triggerDownload(templateGenerateUrl(type, offenderId))` (`templateDownloadUrl`/`templateGenerateUrl`
+build `/api/...` URLs via `api.getUri()`; `triggerDownload` clicks a hidden anchor). Generate
+buttons are hidden for types with no upload (a browser download can't surface the 404, so the
+server's friendly 404 is avoided by hiding). A subscription 403 on the catalog (Settings or
+OffenderDetail) renders `<Paywall />`; field-keyed 400s (e.g. `{"file": "Only .docx template files are supported."}`)
+render in the row's `ErrorBanner` via `extractErrorMessage()`.
+
 ### Errors
 DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 `extractErrorMessage()` (in `src/utils.ts`) to turn these into UI messages.
@@ -288,7 +319,15 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   fires a partial PATCH mutation when flipped. For subscribed groups the Settings page also
   shows a **Subscription** section with a "Manage subscription & billing" button that runs
   `useCreateBillingPortalSession()` and redirects to the Stripe Customer Portal `url`
-  (hidden when unsubscribed; failures render an error banner).
+  (hidden when unsubscribed; failures render an error banner). Document-templates cases (mocked
+  `../api/templates`) render the per-type rows with upload state, fire the multipart upload
+  mutation on file pick, link Download to the template URL, remove after confirm, show field-keyed
+  400 errors in a banner, expand the "Available fields" placeholder list, and render the paywall
+  in the section when unsubscribed.
+- `src/pages/OffenderDetail.test.tsx` — renders a "Generate <Label>" button per uploaded template
+  type (none when nothing is uploaded), clicking calls `triggerDownload` with the
+  `/templates/<type>/generate/?offender=<id>` URL, and a subscription-403 catalog error renders
+  the paywall.
 - `src/pages/Signup.test.tsx` — renders the signup headline, 3 benefit bullets, and
   Name/Email/Law firm name fields; submit fires the `useSignup` mutation with the entered
   values; success auto-logs the user in (sets the auth user) and navigates to `/offenders`.

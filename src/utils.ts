@@ -65,6 +65,14 @@ export function dateOrNull(value: FormDataEntryValue | null): string | null {
   return text ? text : null
 }
 
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  const kb = bytes / 1024
+  if (kb < 1024) return `${Math.round(kb)} KB`
+  const mb = kb / 1024
+  return `${mb.toFixed(1)} MB`
+}
+
 export function extractErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.'): string {
   if (isAxiosError(error)) {
     const data = error.response?.data

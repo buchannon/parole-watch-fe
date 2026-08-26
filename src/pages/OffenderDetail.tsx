@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useOffender, useOffenderStatuses } from '../api/offenders'
+import { templateGenerateUrl, triggerDownload, useTemplateCatalog } from '../api/templates'
 import { isSubscriptionError } from '../auth/subscription'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { Spinner } from '../components/Spinner'
 import { StatusBadge } from '../components/StatusBadge'
 import type { OffenderStatus } from '../types'
-import { cn, extractErrorMessage, formatDate, formatDateTime, formatMonthYear, normalizeStatus } from '../utils'
+import { buttonPrimaryClass, cn, extractErrorMessage, formatDate, formatDateTime, formatMonthYear, normalizeStatus } from '../utils'
 import Paywall from './Paywall'
 
 const nextReviewBgStyles: Record<Exclude<OffenderStatus, 'Approved'>, string> = {
@@ -25,12 +26,15 @@ export default function OffenderDetail() {
   const { id = '' } = useParams()
   const { data: offender, isLoading, isError, error } = useOffender(id)
   const statuses = useOffenderStatuses(id)
+  const templates = useTemplateCatalog()
 
   if (isSubscriptionError(error)) return <Paywall />
+  if (isSubscriptionError(templates.error)) return <Paywall />
   if (isLoading) return <Spinner label="Loading offender…" />
   if (isError || !offender) return <ErrorBanner message={extractErrorMessage(error, 'Failed to load offender')} />
 
   const normalizedStatus = normalizeStatus(offender.status)
+  const uploadedTypes = (templates.data ?? []).filter((entry) => entry.templates.some((template) => template.uploaded))
   const decision = offender.last_parole_decision.toLowerCase()
   const decisionStyle =
     decision === 'approved'
@@ -110,6 +114,34 @@ export default function OffenderDetail() {
             </dd>
           </div>
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900">Documents</h2>
+        {templates.isLoading ? (
+          <Spinner label="Loading documents…" />
+        ) : templates.isError ? (
+          <div className="mt-3">
+            <ErrorBanner message={extractErrorMessage(templates.error, 'Failed to load documents')} />
+          </div>
+        ) : uploadedTypes.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {uploadedTypes.map((entry) => (
+              <button
+                key={entry.template_type}
+                type="button"
+                onClick={() => triggerDownload(templateGenerateUrl(entry.template_type, offender.id))}
+                className={buttonPrimaryClass}
+              >
+                Generate {entry.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-gray-500">
+            No document templates uploaded for your group. Upload one in Settings to generate documents.
+          </p>
+        )}
       </section>
 
       <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">

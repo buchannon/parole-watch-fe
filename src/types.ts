@@ -84,3 +84,32 @@ export interface BulkImportJob {
   summary: BulkImportSummary
   items: BulkImportItem[]
 }
+
+export type TemplateType = 'LETTER_OF_REPRESENTATION' | 'FEE_AFFIDAVIT'
+
+export interface TemplateGroup {
+  id: number
+  name: string
+}
+
+export interface UploadedTemplate {
+  group: TemplateGroup
+  template_type: TemplateType
+  label: string
+  uploaded: boolean
+  id?: string
+  file_name?: string
+  file_size?: number
+  edited?: string
+}
+
+export interface TemplateTypeEntry {
+  template_type: TemplateType
+  label: string
+  templates: UploadedTemplate[]
+}
+
+export interface TemplatePlaceholder {
+  name: string
+  label: string
+}
