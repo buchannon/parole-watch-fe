@@ -175,6 +175,12 @@ export default function Signup() {
                 .
               </label>
             </div>
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-center">
+              <p className="text-sm font-semibold text-gray-900">Just $30 / month</p>
+              <p className="mt-0.5 text-xs text-gray-600">
+                Cancel within your first month for a full money-back refund.
+              </p>
+            </div>
             <button type="submit" disabled={signup.isPending} className={`${buttonPrimaryClass} w-full`}>
               {signup.isPending ? 'Signing up…' : 'Sign up'}
             </button>
