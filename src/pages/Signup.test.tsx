@@ -71,9 +71,21 @@ describe('Signup', () => {
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Law firm name')).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ })).not.toBeChecked()
-    expect(screen.getByRole('link', { name: 'Terms & Conditions' })).toHaveAttribute('href', '/terms')
+    expect(screen.getAllByRole('button', { name: 'Terms & Conditions' }).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+  })
+
+  it('opens the terms modal from the checkbox without losing the form', async () => {
+    renderSignup()
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jane Doe' } })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Terms & Conditions' })[0])
+
+    expect(screen.getByRole('dialog', { name: 'Parole Watch Terms & Conditions' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveValue('Jane Doe')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('does not submit until the terms are accepted', async () => {

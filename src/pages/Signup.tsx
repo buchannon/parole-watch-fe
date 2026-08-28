@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useSignup } from '../api/signup'
 import { ErrorBanner } from '../components/ErrorBanner'
 import Footer from '../components/Footer'
+import { TermsModal } from '../components/TermsModal'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 import { getState } from '../states'
 import { TERMS_TEXT } from '../terms'
@@ -30,6 +31,7 @@ export default function Signup() {
   const [email, setEmail] = useState('')
   const [lawFirmName, setLawFirmName] = useState('')
   const [agreeToTerms, setAgreeToTerms] = useState(false)
+  const [termsOpen, setTermsOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [turnstileFailed, setTurnstileFailed] = useState(false)
 
@@ -163,14 +165,13 @@ export default function Signup() {
               />
               <label htmlFor="agree-to-terms" className="text-sm text-gray-600">
                 I agree to the{' '}
-                <Link
-                  to="/terms"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setTermsOpen(true)}
                   className="font-medium text-blue-600 hover:underline"
                 >
                   Terms & Conditions
-                </Link>
+                </button>
                 .
               </label>
             </div>
@@ -187,6 +188,7 @@ export default function Signup() {
         </div>
       </div>
       <Footer />
+      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
     </div>
   )
 }

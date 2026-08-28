@@ -41,16 +41,17 @@ src/
   auth/             AuthContext (user state, login/logout/me/refreshUser), RequireAuth + RedirectIfAuthed
                     guards, RequireSubscription (paywall Outlet guard), subscription helpers
     subscription.ts   isSubscribed(user) + isSubscriptionError(error) + SUBSCRIPTION_INACTIVE_DETAIL
-  components/       Modal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, Footer, forms
+  components/       Modal, TermsModal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, Footer, forms
   Footer.tsx        subtle site-wide footer: "© {currentYear} J Showers Digital Consulting LLC" with the company
-                    name linking to https://hire.jshowers.com (new tab). Rendered at the bottom of every page
-                    (Layout + Login, Signup, and NotFound, all of which use a flex-col min-h-screen shell so the
-                    footer sticks to the bottom).
+                    name linking to https://hire.jshowers.com (new tab) plus an inline "Terms & Conditions" button
+                    that opens `TermsModal` in place. Rendered at the bottom of every page (Layout + Login, Signup,
+                    and NotFound, all of which use a flex-col min-h-screen shell so the footer sticks to the bottom).
   bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
   terms.ts          Single source of truth for the Terms & Conditions: TERMS_TITLE / TERMS_UPDATED /
-                    TERMS_SECTIONS (rendered by src/pages/Terms.tsx) + TERMS_TEXT (plain-text snapshot sent to the
-                    API with signup as `terms_text` so the backend can record exactly what the user agreed to)
-  pages/            Login, Signup, Terms, Paywall, OffenderList, OffenderDetail, Settings, NotFound
+                    TERMS_SECTIONS (rendered by src/components/TermsModal.tsx) + TERMS_TEXT (plain-text snapshot
+                    sent to the API with signup as `terms_text` so the backend can record exactly what the user
+                    agreed to)
+  pages/            Login, Signup, Paywall, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
   states.ts         US state code → {name, flag} map (`US_STATES`) + `getState()`
   types.ts          TS interfaces mirroring the API payloads
@@ -106,9 +107,10 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
 
 The signup form requires the user to check a "I agree to the Terms & Conditions" checkbox before
-submitting (blocked client-side with an error banner otherwise). The link opens the public
-`/terms` page (`src/pages/Terms.tsx`, routed alongside `/signup` outside the auth guard) in a new
-tab so entered form values aren't lost; content lives in `src/terms.ts`.
+submitting (blocked client-side with an error banner otherwise). The label's link opens
+`TermsModal` in place — no navigation, so entered form values aren't lost; the same modal is
+reachable from the inline "Terms & Conditions" button in the site-wide `Footer`. Content lives in
+`src/terms.ts` and renders via `src/components/TermsModal.tsx`. There is **no** `/terms` page/route.
 
 `group_settings` is a read-only per-group settings list
 (`[{name: <group>, operating_state: <US state code>, is_subscribed: <boolean>}]`, ordered by group
@@ -371,11 +373,13 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   calls `triggerDownload` with the `/templates/<type>/generate/?offender=<id>` URL, and a
   subscription-403 catalog error renders the paywall.
 - `src/pages/Signup.test.tsx` — renders the signup headline, 3 benefit bullets, and
-  Name/Email/Law firm name fields plus the required Terms & Conditions checkbox (link to `/terms`,
-  opens in a new tab); submit is blocked with an error banner until the checkbox is checked, and
-  the `useSignup` mutation payload includes `agree_to_terms: true` + `terms_text` (from
-  `src/terms.ts`); success auto-logs the user in (sets the auth user) and navigates to `/offenders`.
-- `src/pages/Terms.test.tsx` — renders the Terms page title/sections/back link, and verifies
+  Name/Email/Law firm name fields plus the required Terms & Conditions checkbox (a button opens
+  `TermsModal` in place without losing the form); submit is blocked with an error banner until the
+  checkbox is checked, and the `useSignup` mutation payload includes `agree_to_terms: true` +
+  `terms_text` (from `src/terms.ts`); success auto-logs the user in (sets the auth user) and
+  navigates to `/offenders`.
+- `src/components/TermsModal.test.tsx` — renders nothing when closed; when open shows the title,
+  updated date, and all `TERMS_SECTIONS`; closes via the "Got it" button and Escape; verifies
   `TERMS_TEXT` (the plain-text snapshot sent to the API) covers the same content.
 - `src/pages/Login.test.tsx` — renders the username/password fields, submits credentials
   through the auth context, and shows an error banner on failure. Both Login/Signup tests
@@ -385,7 +389,8 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   separators, non-8-digit entries dropped, duplicates deduped preserving first-seen
   order, blank input → empty.
 - `src/components/Footer.test.tsx` — renders the current-year copyright and a
-  `hire.jshowers.com` link (target `_blank`, rel `noopener noreferrer`).
+  `hire.jshowers.com` link (target `_blank`, rel `noopener noreferrer`), and the inline
+  "Terms & Conditions" button opens/closes the `TermsModal`.
 - `src/components/BulkImportModal.test.tsx` — live valid/dropped count while typing,
   Continue disabled with no valid numbers, the confirmation step lists the numbers,
   "Import N" fires `useCreateBulkImport` with the validated list, progress renders

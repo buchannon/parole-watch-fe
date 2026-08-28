@@ -7,14 +7,12 @@ import OffenderDetail from './pages/OffenderDetail'
 import OffenderList from './pages/OffenderList'
 import Settings from './pages/Settings'
 import Signup from './pages/Signup'
-import Terms from './pages/Terms'
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<RedirectIfAuthed><Login /></RedirectIfAuthed>} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/terms" element={<Terms />} />
       <Route element={<RequireAuth><Layout /></RequireAuth>}>
         <Route path="/" element={<Navigate to="/offenders" replace />} />
         <Route element={<RequireSubscription />}>
