@@ -41,7 +41,11 @@ src/
   auth/             AuthContext (user state, login/logout/me/refreshUser), RequireAuth + RedirectIfAuthed
                     guards, RequireSubscription (paywall Outlet guard), subscription helpers
     subscription.ts   isSubscribed(user) + isSubscriptionError(error) + SUBSCRIPTION_INACTIVE_DETAIL
-  components/       Modal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, forms
+  components/       Modal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, Footer, forms
+  Footer.tsx        subtle site-wide footer: "© {currentYear} J Showers Digital Consulting LLC" with the company
+                    name linking to https://hire.jshowers.com (new tab). Rendered at the bottom of every page
+                    (Layout + Login, Signup, and NotFound, all of which use a flex-col min-h-screen shell so the
+                    footer sticks to the bottom).
   bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
   pages/            Login, Signup, Paywall, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
@@ -368,6 +372,8 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 - `src/bulkImport.test.ts` — `parseTdcjList()`: newline/comma/space (and semicolon)
   separators, non-8-digit entries dropped, duplicates deduped preserving first-seen
   order, blank input → empty.
+- `src/components/Footer.test.tsx` — renders the current-year copyright and a
+  `hire.jshowers.com` link (target `_blank`, rel `noopener noreferrer`).
 - `src/components/BulkImportModal.test.tsx` — live valid/dropped count while typing,
   Continue disabled with no valid numbers, the confirmation step lists the numbers,
   "Import N" fires `useCreateBulkImport` with the validated list, progress renders

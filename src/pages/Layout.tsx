@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import Footer from '../components/Footer'
 import { buttonSecondaryClass, cn } from '../utils'
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
@@ -16,7 +17,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <nav className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-6">
@@ -38,9 +39,10 @@ export default function Layout() {
           </div>
         </div>
       </nav>
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         <Outlet />
       </main>
+      <Footer />
     </div>
   )
 }
