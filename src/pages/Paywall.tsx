@@ -5,6 +5,7 @@ import { offenderKeys } from '../api/offenders'
 import { useAuth } from '../auth/AuthContext'
 import { isSubscribed } from '../auth/subscription'
 import { ErrorBanner } from '../components/ErrorBanner'
+import { TermsModal } from '../components/TermsModal'
 import { buttonPrimaryClass, extractErrorMessage } from '../utils'
 
 export default function Paywall() {
@@ -12,6 +13,7 @@ export default function Paywall() {
   const queryClient = useQueryClient()
   const checkout = useCreateCheckoutSession()
   const [error, setError] = useState<string | null>(null)
+  const [termsOpen, setTermsOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -56,11 +58,20 @@ export default function Paywall() {
             <ErrorBanner message={error} onDismiss={() => setError(null)} />
           </div>
         )}
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setTermsOpen(true)}
+            className="text-sm font-medium text-blue-600 hover:underline"
+          >
+            Terms & Conditions
+          </button>
+        </div>
         <button
           type="button"
           onClick={handleSubscribe}
           disabled={checkout.isPending}
-          className={`${buttonPrimaryClass} mt-6 w-full`}
+          className={`${buttonPrimaryClass} mt-4 w-full`}
         >
           {checkout.isPending ? 'Redirecting to checkout…' : 'Subscribe'}
         </button>
@@ -68,6 +79,7 @@ export default function Paywall() {
           Payment is processed securely by Stripe. You will be returned here once checkout is complete.
         </p>
       </div>
+      <TermsModal open={termsOpen} onClose={() => setTermsOpen(false)} />
     </div>
   )
 }

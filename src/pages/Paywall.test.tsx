@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as billingApi from '../api/billing'
 import { useAuth } from '../auth/AuthContext'
+import { TERMS_TITLE } from '../terms'
 import type { AuthUser } from '../types'
 import Paywall from './Paywall'
 
@@ -59,6 +60,14 @@ describe('Paywall', () => {
     renderPaywall()
     expect(screen.getByText('Your subscription is inactive')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Subscribe' })).toBeInTheDocument()
+  })
+
+  it('opens and closes the Terms & Conditions modal', () => {
+    renderPaywall()
+    fireEvent.click(screen.getByRole('button', { name: 'Terms & Conditions' }))
+    expect(screen.getByRole('heading', { name: TERMS_TITLE })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
+    expect(screen.queryByRole('heading', { name: TERMS_TITLE })).not.toBeInTheDocument()
   })
 
   it('redirects to the Stripe checkout URL when subscribing succeeds', async () => {
