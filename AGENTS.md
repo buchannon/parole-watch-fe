@@ -47,7 +47,10 @@ src/
                     (Layout + Login, Signup, and NotFound, all of which use a flex-col min-h-screen shell so the
                     footer sticks to the bottom).
   bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
-  pages/            Login, Signup, Paywall, OffenderList, OffenderDetail, Settings, NotFound
+  terms.ts          Single source of truth for the Terms & Conditions: TERMS_TITLE / TERMS_UPDATED /
+                    TERMS_SECTIONS (rendered by src/pages/Terms.tsx) + TERMS_TEXT (plain-text snapshot sent to the
+                    API with signup as `terms_text` so the backend can record exactly what the user agreed to)
+  pages/            Login, Signup, Terms, Paywall, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
   states.ts         US state code → {name, flag} map (`US_STATES`) + `getState()`
   types.ts          TS interfaces mirroring the API payloads
@@ -97,10 +100,15 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 ### Signup (public, no auth)
 | Method | Path            | Body                                  | Notes |
 | ------ | --------------- | ------------------------------------- | ----- |
-| POST   | `/api/signup/`  | `{name, email, law_firm_name, cf_turnstile_response?}`          | `AllowAny`; creates a new group (law firm name) + new user (name/email, username = email) in one transaction, emails the user a generated password + notifies the owner, then auto-logs in (sets the JWT cookies) and returns **201** with the same `{username, email, name, groups, group_settings, settings}` payload as login. DRF-style field errors on missing/invalid input; 400 on duplicate email or duplicate firm name; 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set). |
+| POST   | `/api/signup/`  | `{name, email, law_firm_name, agree_to_terms, terms_text, cf_turnstile_response?}`          | `AllowAny`; creates a new group (law firm name) + new user (name/email, username = email) in one transaction, emails the user a generated password + notifies the owner, then auto-logs in (sets the JWT cookies) and returns **201** with the same `{username, email, name, groups, group_settings, settings}` payload as login. DRF-style field errors on missing/invalid input; 400 on duplicate email or duplicate firm name; 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set). The front-end sends `agree_to_terms: true` only after the user checks the Terms checkbox on the Signup page, plus `terms_text` (the exact plain-text snapshot from `src/terms.ts`) so the backend can record what the user agreed to. |
 
 `name` is the user's full name (falls back to username). `groups` are the current user's
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
+
+The signup form requires the user to check a "I agree to the Terms & Conditions" checkbox before
+submitting (blocked client-side with an error banner otherwise). The link opens the public
+`/terms` page (`src/pages/Terms.tsx`, routed alongside `/signup` outside the auth guard) in a new
+tab so entered form values aren't lost; content lives in `src/terms.ts`.
 
 `group_settings` is a read-only per-group settings list
 (`[{name: <group>, operating_state: <US state code>, is_subscribed: <boolean>}]`, ordered by group
@@ -363,8 +371,12 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   calls `triggerDownload` with the `/templates/<type>/generate/?offender=<id>` URL, and a
   subscription-403 catalog error renders the paywall.
 - `src/pages/Signup.test.tsx` — renders the signup headline, 3 benefit bullets, and
-  Name/Email/Law firm name fields; submit fires the `useSignup` mutation with the entered
-  values; success auto-logs the user in (sets the auth user) and navigates to `/offenders`.
+  Name/Email/Law firm name fields plus the required Terms & Conditions checkbox (link to `/terms`,
+  opens in a new tab); submit is blocked with an error banner until the checkbox is checked, and
+  the `useSignup` mutation payload includes `agree_to_terms: true` + `terms_text` (from
+  `src/terms.ts`); success auto-logs the user in (sets the auth user) and navigates to `/offenders`.
+- `src/pages/Terms.test.tsx` — renders the Terms page title/sections/back link, and verifies
+  `TERMS_TEXT` (the plain-text snapshot sent to the API) covers the same content.
 - `src/pages/Login.test.tsx` — renders the username/password fields, submits credentials
   through the auth context, and shows an error banner on failure. Both Login/Signup tests
   mock `../components/Turnstile` (a no-op stub) since the real widget needs a sitekey +

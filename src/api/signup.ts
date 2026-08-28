@@ -7,6 +7,8 @@ export interface SignupPayload {
   name: string
   email: string
   law_firm_name: string
+  agree_to_terms: boolean
+  terms_text: string
   cf_turnstile_response?: string
 }
 

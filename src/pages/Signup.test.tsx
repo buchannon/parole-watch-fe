@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as signupApi from '../api/signup'
 import { useAuth } from '../auth/AuthContext'
+import { TERMS_TEXT } from '../terms'
 import type { AuthUser } from '../types'
 import Signup from './Signup'
 
@@ -69,8 +70,23 @@ describe('Signup', () => {
     expect(screen.getByLabelText('Name')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Law firm name')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ })).not.toBeChecked()
+    expect(screen.getByRole('link', { name: 'Terms & Conditions' })).toHaveAttribute('href', '/terms')
     expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+  })
+
+  it('does not submit until the terms are accepted', async () => {
+    const { mutate } = renderSignup()
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jane Doe' } })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
+    fireEvent.change(screen.getByLabelText('Law firm name'), {
+      target: { value: 'Doe & Associates' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+
+    await waitFor(() => expect(mutate).not.toHaveBeenCalled())
+    expect(screen.getByText('You must agree to the Terms & Conditions to sign up.')).toBeInTheDocument()
   })
 
   it('submits the entered values to the signup mutation', async () => {
@@ -80,11 +96,18 @@ describe('Signup', () => {
     fireEvent.change(screen.getByLabelText('Law firm name'), {
       target: { value: 'Doe & Associates' },
     })
+    fireEvent.click(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
     await waitFor(() =>
       expect(mutate).toHaveBeenCalledWith(
-        { name: 'Jane Doe', email: 'jane@example.com', law_firm_name: 'Doe & Associates' },
+        {
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          law_firm_name: 'Doe & Associates',
+          agree_to_terms: true,
+          terms_text: TERMS_TEXT,
+        },
         expect.anything(),
       ),
     )
@@ -97,6 +120,7 @@ describe('Signup', () => {
     fireEvent.change(screen.getByLabelText('Law firm name'), {
       target: { value: 'Doe & Associates' },
     })
+    fireEvent.click(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
     await waitFor(() => expect(mutate).toHaveBeenCalled())

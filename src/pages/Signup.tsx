@@ -6,6 +6,7 @@ import { ErrorBanner } from '../components/ErrorBanner'
 import Footer from '../components/Footer'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 import { getState } from '../states'
+import { TERMS_TEXT } from '../terms'
 import { buttonPrimaryClass, extractErrorMessage, inputClass } from '../utils'
 
 const fieldLabelClass = 'mb-1 block text-sm font-medium text-gray-700'
@@ -28,18 +29,25 @@ export default function Signup() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [lawFirmName, setLawFirmName] = useState('')
+  const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [turnstileFailed, setTurnstileFailed] = useState(false)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
+    if (!agreeToTerms) {
+      setError('You must agree to the Terms & Conditions to sign up.')
+      return
+    }
     const token = TURNSTILE_SITEKEY ? (await turnstileRef.current?.execute()) ?? '' : ''
     signup.mutate(
       {
         name: name.trim(),
         email: email.trim(),
         law_firm_name: lawFirmName.trim(),
+        agree_to_terms: true,
+        terms_text: TERMS_TEXT,
         ...(token ? { cf_turnstile_response: token } : {}),
       },
       {
@@ -144,6 +152,28 @@ export default function Signup() {
             {turnstileFailed && (
               <p className="text-center text-xs text-red-600">Security verification unavailable. Please try again.</p>
             )}
+            <div className="flex items-start gap-2">
+              <input
+                id="agree-to-terms"
+                name="agree_to_terms"
+                type="checkbox"
+                checked={agreeToTerms}
+                onChange={(event) => setAgreeToTerms(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="agree-to-terms" className="text-sm text-gray-600">
+                I agree to the{' '}
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-blue-600 hover:underline"
+                >
+                  Terms & Conditions
+                </Link>
+                .
+              </label>
+            </div>
             <button type="submit" disabled={signup.isPending} className={`${buttonPrimaryClass} w-full`}>
               {signup.isPending ? 'Signing up…' : 'Sign up'}
             </button>
