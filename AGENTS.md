@@ -126,6 +126,14 @@ submitting (blocked client-side with an error banner otherwise). The label's lin
 reachable from the inline "Terms & Conditions" button in the site-wide `Footer`. Content lives in
 `src/terms.ts` and renders via `src/components/TermsModal.tsx`. There is **no** `/terms` page/route.
 
+**Marketing pre-fill:** `Signup.tsx` reads `?name=…&email=…&law_firm_name=…` (and a `firm`
+alias) from the URL via `useSearchParams` and seeds the Name / Email / Law firm name fields
+(fields stay editable). When any of those params is present it shows a small blue
+"We pre-filled your firm details…" note above the form. The backend's
+`GET /api/marketing/click/<token>/signup/` tracking endpoint redirects here with these params
+for the email-marketing campaign (see the API repo's `CampaignClick`/`send_campaign_email`),
+so the signup form is effectively pre-filled for anyone who clicks a campaign link.
+
 ### Password reset (public, no auth)
 
 | Method | Path                            | Body                           | Notes |
@@ -423,7 +431,8 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   error banner until the checkbox is checked, on a weak password, and when the passwords don't
   match; the `useSignup` mutation payload includes `agree_to_terms: true`, `terms_text` (from
   `src/terms.ts`), and the chosen `password`; success auto-logs the user in (sets the auth user) and
-  navigates to `/offenders`.
+  navigates to `/offenders`; the marketing query-param pre-fill (`?name=…&email=…&law_firm_name=…`
+  seeds the fields and shows the "pre-filled your firm details" note; no params → no note).
 - `src/password.test.ts` — `validatePassword()`: rejects short passwords and passwords lacking 2 of
   4 character classes, accepts ≥8-char passwords with ≥2 classes, and labels Weak/Medium/Strong.
 - `src/pages/ForgotPassword.test.tsx` — renders the email form, submits it through

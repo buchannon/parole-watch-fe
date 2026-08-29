@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useSignup } from '../api/signup'
 import { ErrorBanner } from '../components/ErrorBanner'
@@ -27,10 +27,17 @@ export default function Signup() {
   const signup = useSignup()
   const { setUser } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const prefill = {
+    name: searchParams.get('name') ?? '',
+    email: searchParams.get('email') ?? '',
+    lawFirmName: searchParams.get('law_firm_name') ?? searchParams.get('firm') ?? '',
+  }
+  const hasPrefill = Boolean(prefill.name || prefill.email || prefill.lawFirmName)
   const turnstileRef = useRef<TurnstileHandle>(null)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [lawFirmName, setLawFirmName] = useState('')
+  const [name, setName] = useState(prefill.name)
+  const [email, setEmail] = useState(prefill.email)
+  const [lawFirmName, setLawFirmName] = useState(prefill.lawFirmName)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [agreeToTerms, setAgreeToTerms] = useState(false)
@@ -112,6 +119,11 @@ export default function Signup() {
             </ul>
           </div>
           <hr className="my-6 border-gray-200" />
+          {hasPrefill && (
+            <p className="mb-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              We pre-filled your firm details from your records — review them and choose a password.
+            </p>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <ErrorBanner message={error} />}
             <div>

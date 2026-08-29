@@ -46,13 +46,13 @@ function mockMutation(): any {
 
 const PASSWORD = 'MediumStr0ng!Pass'
 
-function renderSignup() {
+function renderSignup(initialEntries = ['/signup']) {
   const mutate = vi.fn()
   const setUser = vi.fn()
   mockUseSignup.mockReturnValue({ ...mockMutation(), mutate })
   mockUseAuth.mockReturnValue({ setUser } as any)
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <Signup />
     </MemoryRouter>,
   )
@@ -156,6 +156,19 @@ describe('Signup', () => {
         expect.anything(),
       ),
     )
+  })
+
+  it('pre-fills name, email, and law firm from the campaign query params', () => {
+    renderSignup(['/signup?name=Dan%20B.%20Gerson&email=dan%40gersonlaw.com&law_firm_name=Gerson%20Law'])
+    expect(screen.getByLabelText('Law firm name')).toHaveValue('Gerson Law')
+    expect(screen.getByLabelText('Your name')).toHaveValue('Dan B. Gerson')
+    expect(screen.getByLabelText('Email')).toHaveValue('dan@gersonlaw.com')
+    expect(screen.getByText(/pre-filled your firm details/)).toBeInTheDocument()
+  })
+
+  it('shows no pre-fill note without query params', () => {
+    renderSignup()
+    expect(screen.queryByText(/pre-filled your firm details/)).not.toBeInTheDocument()
   })
 
   it('auto-logs the user in and navigates to the app on success', async () => {
