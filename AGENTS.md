@@ -50,7 +50,7 @@ src/
                     and NotFound, all of which use a flex-col min-h-screen shell so the footer sticks to the bottom).
   bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
   password.ts       validatePassword() — shared signup/reset password rule ("medium complexity or
-                    higher": ≥8 chars AND ≥3 of 4 classes — lowercase, uppercase, digit, symbol) +
+                    higher": ≥8 chars AND ≥2 of 4 classes — lowercase, uppercase, digit, symbol) +
                     Weak/Medium/Strong label. Mirrors the backend's validate_signup_password.
   terms.ts          Single source of truth for the Terms & Conditions: TERMS_TITLE / TERMS_UPDATED /
                     TERMS_SECTIONS (rendered by src/components/TermsModal.tsx) + TERMS_TEXT (plain-text snapshot
@@ -405,8 +405,8 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   match; the `useSignup` mutation payload includes `agree_to_terms: true`, `terms_text` (from
   `src/terms.ts`), and the chosen `password`; success auto-logs the user in (sets the auth user) and
   navigates to `/offenders`.
-- `src/password.test.ts` — `validatePassword()`: rejects short passwords and passwords lacking 3 of
-  4 character classes, accepts ≥8-char passwords with ≥3 classes, and labels Weak/Medium/Strong.
+- `src/password.test.ts` — `validatePassword()`: rejects short passwords and passwords lacking 2 of
+  4 character classes, accepts ≥8-char passwords with ≥2 classes, and labels Weak/Medium/Strong.
 - `src/pages/ForgotPassword.test.tsx` — renders the email form, submits it through
   `useRequestPasswordReset`, shows the sent confirmation on success, and an error banner on failure.
 - `src/pages/ResetPassword.test.tsx` — redirects to `/forgot-password` when `email`/`token` are

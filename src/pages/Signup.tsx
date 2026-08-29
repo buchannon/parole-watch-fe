@@ -48,7 +48,7 @@ export default function Signup() {
       return
     }
     if (!passwordCheck.valid) {
-      setError('Please choose a stronger password (at least 8 characters and 3 of: lowercase, uppercase, digit, symbol).')
+      setError('Please choose a stronger password (at least 8 characters and 2 of: lowercase, uppercase, digit, symbol).')
       return
     }
     if (password !== confirmPassword) {

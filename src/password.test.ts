@@ -8,17 +8,22 @@ describe('validatePassword', () => {
     expect(result.errors.join(' ')).toMatch(/at least 8/)
   })
 
-  it('rejects passwords missing three character classes', () => {
+  it('rejects passwords lacking two or more character classes', () => {
     const result = validatePassword('abcdefgh')
     expect(result.valid).toBe(false)
     expect(result.errors.join(' ')).toMatch(/lowercase, uppercase, digit, symbol/)
   })
 
-  it('accepts a password meeting all three required classes', () => {
+  it('accepts a password meeting all four required classes', () => {
     const result = validatePassword('MediumStr0ng!Pass')
     expect(result.valid).toBe(true)
     expect(result.errors).toEqual([])
     expect(result.label).toBe('Strong')
+  })
+
+  it('accepts an 8-char password with exactly two classes', () => {
+    expect(validatePassword('abcdefg1').valid).toBe(true)
+    expect(validatePassword('abcdefGH').valid).toBe(true)
   })
 
   it('accepts an 8-char password with exactly three classes', () => {

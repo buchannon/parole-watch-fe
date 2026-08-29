@@ -20,8 +20,8 @@ export function validatePassword(value: string): PasswordValidation {
     errors.push(`Use at least ${PASSWORD_MIN_LENGTH} characters.`)
   }
   const matched = CLASSES.filter((regex) => regex.test(value)).length
-  if (matched < 3) {
-    errors.push('Include at least 3 of: lowercase, uppercase, digit, symbol.')
+  if (matched < 2) {
+    errors.push('Include at least 2 of: lowercase, uppercase, digit, symbol.')
   }
   if (errors.length > 0) {
     return { valid: false, errors, score: 0, label: 'Weak' }
