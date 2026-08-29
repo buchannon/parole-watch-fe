@@ -7,8 +7,9 @@ import Footer from '../components/Footer'
 import { TermsModal } from '../components/TermsModal'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 import { getState } from '../states'
+import { validatePassword } from '../password'
 import { TERMS_TEXT } from '../terms'
-import { buttonPrimaryClass, extractErrorMessage, inputClass } from '../utils'
+import { buttonPrimaryClass, cn, extractErrorMessage, inputClass } from '../utils'
 
 const fieldLabelClass = 'mb-1 block text-sm font-medium text-gray-700'
 
@@ -30,10 +31,14 @@ export default function Signup() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [lawFirmName, setLawFirmName] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [termsOpen, setTermsOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [turnstileFailed, setTurnstileFailed] = useState(false)
+
+  const passwordCheck = validatePassword(password)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -42,12 +47,21 @@ export default function Signup() {
       setError('You must agree to the Terms & Conditions to sign up.')
       return
     }
+    if (!passwordCheck.valid) {
+      setError('Please choose a stronger password (at least 8 characters and 3 of: lowercase, uppercase, digit, symbol).')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
     const token = TURNSTILE_SITEKEY ? (await turnstileRef.current?.execute()) ?? '' : ''
     signup.mutate(
       {
         name: name.trim(),
         email: email.trim(),
         law_firm_name: lawFirmName.trim(),
+        password,
         agree_to_terms: true,
         terms_text: TERMS_TEXT,
         ...(token ? { cf_turnstile_response: token } : {}),
@@ -143,6 +157,47 @@ export default function Signup() {
                 onChange={(event) => setLawFirmName(event.target.value)}
                 required
                 autoComplete="organization"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className={fieldLabelClass}>
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                autoComplete="new-password"
+                className={inputClass}
+              />
+              {password && (
+                <p
+                  className={cn(
+                    'mt-1 text-xs',
+                    passwordCheck.valid ? 'text-green-700' : 'text-gray-500',
+                  )}
+                >
+                  Strength: {passwordCheck.label}
+                  {passwordCheck.valid ? ' — looks good.' : ''}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="confirmPassword" className={fieldLabelClass}>
+                Confirm password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirm_password"
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                required
+                autoComplete="new-password"
                 className={inputClass}
               />
             </div>

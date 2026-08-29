@@ -32,7 +32,9 @@ src/
     client.ts         axios instance, baseURL '/api', CSRF header, 401 handling
     logger.ts         logInfo / logWarn / logError helpers
     auth.ts           login / logout / me requests
-    signup.ts         useSignup (public account-signup POST to /signup/)
+    signup.ts         useSignup (public account-signup POST to /signup/, includes user-chosen password)
+    passwordReset.ts  useRequestPasswordReset (POST /auth/password/reset/) + useResetPassword
+                      (POST /auth/password/reset/confirm/)
     billing.ts        useCreateCheckoutSession (POST /billing/checkout/ → {checkout_url, session_id})
     offenders.ts      useOffenders / useOffender / useOffenderStatuses / create / unfollow
     bulkImport.ts     useCreateBulkImport + useBulkImportJob (poll-driven bulk import, see below)
@@ -47,11 +49,14 @@ src/
                     that opens `TermsModal` in place. Rendered at the bottom of every page (Layout + Login, Signup,
                     and NotFound, all of which use a flex-col min-h-screen shell so the footer sticks to the bottom).
   bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
+  password.ts       validatePassword() — shared signup/reset password rule ("medium complexity or
+                    higher": ≥8 chars AND ≥3 of 4 classes — lowercase, uppercase, digit, symbol) +
+                    Weak/Medium/Strong label. Mirrors the backend's validate_signup_password.
   terms.ts          Single source of truth for the Terms & Conditions: TERMS_TITLE / TERMS_UPDATED /
                     TERMS_SECTIONS (rendered by src/components/TermsModal.tsx) + TERMS_TEXT (plain-text snapshot
                     sent to the API with signup as `terms_text` so the backend can record exactly what the user
                     agreed to)
-  pages/            Login, Signup, Paywall, OffenderList, OffenderDetail, Settings, NotFound
+  pages/            Login, Signup, ForgotPassword, ResetPassword, Paywall, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
   states.ts         US state code → {name, flag} map (`US_STATES`) + `getState()`
   types.ts          TS interfaces mirroring the API payloads
@@ -101,7 +106,7 @@ All endpoints except login require auth (httpOnly-cookie JWT).
 ### Signup (public, no auth)
 | Method | Path            | Body                                  | Notes |
 | ------ | --------------- | ------------------------------------- | ----- |
-| POST   | `/api/signup/`  | `{name, email, law_firm_name, agree_to_terms, terms_text, cf_turnstile_response?}`          | `AllowAny`; creates a new group (law firm name) + new user (name/email, username = email) in one transaction, emails the user a generated password + notifies the owner, then auto-logs in (sets the JWT cookies) and returns **201** with the same `{username, email, name, groups, group_settings, settings}` payload as login. DRF-style field errors on missing/invalid input; 400 on duplicate email or duplicate firm name; 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set). The front-end sends `agree_to_terms: true` only after the user checks the Terms checkbox on the Signup page, plus `terms_text` (the exact plain-text snapshot from `src/terms.ts`) so the backend can record what the user agreed to. |
+| POST   | `/api/signup/`  | `{name, email, law_firm_name, password, agree_to_terms, terms_text, cf_turnstile_response?}`          | `AllowAny`; creates a new group (law firm name) + new user (name/email, username = email, **user-chosen password**) in one transaction, notifies the owner, then auto-logs in (sets the JWT cookies) and returns **201** with the same `{username, email, name, groups, group_settings, settings}` payload as login. **No credentials email is sent** — the user chose the password. DRF-style field errors on missing/invalid input; 400 on duplicate email or duplicate firm name; 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set); 400 on a weak password (see `password.ts`). The front-end sends `agree_to_terms: true` only after the user checks the Terms checkbox on the Signup page, plus `terms_text` (the exact plain-text snapshot from `src/terms.ts`) so the backend can record what the user agreed to. |
 
 `name` is the user's full name (falls back to username). `groups` are the current user's
 group names (e.g. `["The Law Office of Mani Nezami"]`), shown on the read-only Settings page.
@@ -111,6 +116,25 @@ submitting (blocked client-side with an error banner otherwise). The label's lin
 `TermsModal` in place — no navigation, so entered form values aren't lost; the same modal is
 reachable from the inline "Terms & Conditions" button in the site-wide `Footer`. Content lives in
 `src/terms.ts` and renders via `src/components/TermsModal.tsx`. There is **no** `/terms` page/route.
+
+### Password reset (public, no auth)
+
+| Method | Path                            | Body                           | Notes |
+| ------ | ------------------------------- | ------------------------------ | ----- |
+| POST   | `/api/auth/password/reset/`       | `{email, cf_turnstile_response?}` | `AllowAny`; always 200 (no user enumeration). If a user with that email exists, emails an expiring reset link to `https://parole.watch/reset-password?email=...&token=...` (token from Django's `default_token_generator`, tied to the current password hash, valid for `PASSWORD_RESET_TIMEOUT` = 1 hour). 400 if Turnstile verification fails (only when backend `TURNSTILE_SECRET_KEY` is set). |
+| POST   | `/api/auth/password/reset/confirm/` | `{email, token, new_password, cf_turnstile_response?}` | `AllowAny`; verifies the expiring token, applies the same password-complexity rule as signup, sets the new password, and **auto-logs the user in** (sets the JWT cookies), returning the standard auth payload. 400 `{"token": "This reset link is invalid or has expired."}` on a bad/expired/used token; 400 on a weak `new_password`; 400 if Turnstile verification fails. |
+
+The flow is exercised from two entry points: the **Forgot password** link on the Login page
+(`src/pages/ForgotPassword.tsx`, a public `/forgot-password` route) and the **Password** section on
+the Settings page (`src/pages/Settings.tsx`, which sends the link to the current user's own email —
+Settings stays reachable while unsubscribed). Both reuse `useRequestPasswordReset()` in
+`src/api/passwordReset.ts`. The emailed link lands on the public `/reset-password` route
+(`src/pages/ResetPassword.tsx`), which reads `email` + `token` from the query string, validates the
+new password client-side with `validatePassword()` (`src/password.ts`), posts to the confirm
+endpoint, and auto-logs the user in via the returned auth payload. Visiting `/reset-password`
+without `email`/`token` redirects to `/forgot-password`. The Turnstile widget is rendered on both
+reset pages with `action="password_reset"`. Resetting a password does **not** revoke other
+already-issued JWT sessions (no token blacklist is installed).
 
 `group_settings` is a read-only per-group settings list
 (`[{name: <group>, operating_state: <US state code>, is_subscribed: <boolean>}]`, ordered by group
@@ -359,7 +383,9 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 - `src/pages/Settings.test.tsx` — renders account details, the featured Operating State row
   (state name + flag icon) below the group name, and both email-alert toggles
   (status-change alerts + weekly summary report); each toggle reflects its setting and
-  fires a partial PATCH mutation when flipped. For subscribed groups the Settings page also
+  fires a partial PATCH mutation when flipped. The **Password** section's "Send password reset
+  link" button fires `useRequestPasswordReset()` with the current user's email and shows a
+  confirmation or error banner. For subscribed groups the Settings page also
   shows a **Subscription** section with a "Manage subscription & billing" button that runs
   `useCreateBillingPortalSession()` and redirects to the Stripe Customer Portal `url`
   (hidden when unsubscribed; failures render an error banner). Document-templates cases (mocked
@@ -373,15 +399,25 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   calls `triggerDownload` with the `/templates/<type>/generate/?offender=<id>` URL, and a
   subscription-403 catalog error renders the paywall.
 - `src/pages/Signup.test.tsx` — renders the signup headline, 3 benefit bullets, and
-  Name/Email/Law firm name fields plus the required Terms & Conditions checkbox (a button opens
-  `TermsModal` in place without losing the form); submit is blocked with an error banner until the
-  checkbox is checked, and the `useSignup` mutation payload includes `agree_to_terms: true` +
-  `terms_text` (from `src/terms.ts`); success auto-logs the user in (sets the auth user) and
+  Name/Email/Law firm name/Password/Confirm password fields plus the required Terms & Conditions
+  checkbox (a button opens `TermsModal` in place without losing the form); submit is blocked with an
+  error banner until the checkbox is checked, on a weak password, and when the passwords don't
+  match; the `useSignup` mutation payload includes `agree_to_terms: true`, `terms_text` (from
+  `src/terms.ts`), and the chosen `password`; success auto-logs the user in (sets the auth user) and
   navigates to `/offenders`.
+- `src/password.test.ts` — `validatePassword()`: rejects short passwords and passwords lacking 3 of
+  4 character classes, accepts ≥8-char passwords with ≥3 classes, and labels Weak/Medium/Strong.
+- `src/pages/ForgotPassword.test.tsx` — renders the email form, submits it through
+  `useRequestPasswordReset`, shows the sent confirmation on success, and an error banner on failure.
+- `src/pages/ResetPassword.test.tsx` — redirects to `/forgot-password` when `email`/`token` are
+  missing; renders the new-password + confirm fields; blocks submit on weak or mismatched
+  passwords; submits `{email, token, password}` to `useResetPassword`; auto-logs the user in
+  (sets the auth user) and navigates to `/offenders` on success; error banner on failure.
 - `src/components/TermsModal.test.tsx` — renders nothing when closed; when open shows the title,
   updated date, and all `TERMS_SECTIONS`; closes via the "Got it" button and Escape; verifies
   `TERMS_TEXT` (the plain-text snapshot sent to the API) covers the same content.
-- `src/pages/Login.test.tsx` — renders the username/password fields, submits credentials
+- `src/pages/Login.test.tsx` — renders the username/password fields plus a "Forgot your
+  password?" link to `/forgot-password`, submits credentials
   through the auth context, and shows an error banner on failure. Both Login/Signup tests
   mock `../components/Turnstile` (a no-op stub) since the real widget needs a sitekey +
   script that jsdom doesn't provide.

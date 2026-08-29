@@ -56,6 +56,10 @@ describe('Login', () => {
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /sign up/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /forgot your password/i })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    )
   })
 
   it('submits credentials to login on submit', async () => {

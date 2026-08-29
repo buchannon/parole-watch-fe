@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { isSubscribed } from '../auth/subscription'
 import { useUpdateSettings } from '../api/auth'
 import { useCreateBillingPortalSession } from '../api/billing'
+import { useRequestPasswordReset } from '../api/passwordReset'
 import { DocumentTemplates } from '../components/DocumentTemplates'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { Spinner } from '../components/Spinner'
@@ -14,7 +15,10 @@ export default function Settings() {
   const { user, isLoading, setUser } = useAuth()
   const updateSettings = useUpdateSettings()
   const billingPortal = useCreateBillingPortalSession()
+  const resetPassword = useRequestPasswordReset()
   const [billingError, setBillingError] = useState<string | null>(null)
+  const [passwordSent, setPasswordSent] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
 
   if (isLoading) return <Spinner label="Loading settings…" />
   if (!user) return null
@@ -43,6 +47,20 @@ export default function Settings() {
       onError: (err) =>
         setBillingError(extractErrorMessage(err, 'Unable to open billing management. Please try again.')),
     })
+  }
+
+  const handleSendPasswordReset = () => {
+    if (!user?.email) return
+    setPasswordSent(false)
+    setPasswordError(null)
+    resetPassword.mutate(
+      { email: user.email },
+      {
+        onSuccess: () => setPasswordSent(true),
+        onError: (err) =>
+          setPasswordError(extractErrorMessage(err, 'Could not send the reset link. Please try again.')),
+      },
+    )
   }
 
   return (
@@ -103,6 +121,31 @@ export default function Settings() {
             <dd className="mt-0.5 text-sm text-gray-900">{user.email || '—'}</dd>
           </div>
         </dl>
+      </section>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-4">
+        <h2 className="text-sm font-semibold text-gray-700">Password</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Reset your password via email. You will receive an expiring link to choose a new one.
+        </p>
+        {passwordError && (
+          <div className="mt-3">
+            <ErrorBanner message={passwordError} onDismiss={() => setPasswordError(null)} />
+          </div>
+        )}
+        {passwordSent && (
+          <div className="mt-3 rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-gray-700">
+            Reset link sent to {user.email}. Check your inbox.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={handleSendPasswordReset}
+          disabled={resetPassword.isPending}
+          className={`${buttonPrimaryClass} mt-3`}
+        >
+          {resetPassword.isPending ? 'Sending link…' : 'Send password reset link'}
+        </button>
       </section>
 
       <DocumentTemplates />

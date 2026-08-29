@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as authApi from '../api/auth'
 import * as billingApi from '../api/billing'
+import * as passwordResetApi from '../api/passwordReset'
 import * as templatesApi from '../api/templates'
 import { AuthContext, type AuthContextValue } from '../auth/AuthContext'
 import type { AuthUser, TemplateTypeEntry } from '../types'
@@ -21,6 +22,10 @@ vi.mock('../api/billing', () => ({
   useCreateBillingPortalSession: vi.fn(),
 }))
 
+vi.mock('../api/passwordReset', () => ({
+  useRequestPasswordReset: vi.fn(),
+}))
+
 vi.mock('../api/templates', () => ({
   useTemplateCatalog: vi.fn(),
   useTemplatePlaceholders: vi.fn(),
@@ -32,6 +37,7 @@ vi.mock('../api/templates', () => ({
 const mockUseUpdateSettings = vi.mocked(authApi.useUpdateSettings)
 const mockUseCreateBillingPortalSession = vi.mocked(billingApi.useCreateBillingPortalSession)
 const mockUseCreateCheckoutSession = vi.mocked(billingApi.useCreateCheckoutSession)
+const mockUseRequestPasswordReset = vi.mocked(passwordResetApi.useRequestPasswordReset)
 const mockUseTemplateCatalog = vi.mocked(templatesApi.useTemplateCatalog)
 const mockUseTemplatePlaceholders = vi.mocked(templatesApi.useTemplatePlaceholders)
 const mockUseUploadTemplate = vi.mocked(templatesApi.useUploadTemplate)
@@ -134,6 +140,14 @@ function renderSettings(user: AuthUser = initialUser) {
 
   mockUseCreateCheckoutSession.mockReturnValue(mockMutation() as any)
 
+  const resetMutate = vi.fn()
+  mockUseRequestPasswordReset.mockReturnValue({
+    mutate: resetMutate,
+    mutateAsync: vi.fn(),
+    isPending: false,
+    error: null,
+  } as any)
+
   const uploadMutate = vi.fn()
   mockUseUploadTemplate.mockReturnValue({
     mutate: uploadMutate,
@@ -155,7 +169,7 @@ function renderSettings(user: AuthUser = initialUser) {
   mockTemplateDownloadUrl.mockImplementation((id) => `/api/templates/${id}/`)
 
   render(<Harness />)
-  return { mutate, portalMutate, uploadMutate, deleteMutate }
+  return { mutate, portalMutate, uploadMutate, deleteMutate, resetMutate }
 }
 
 describe('Settings', () => {
@@ -276,6 +290,38 @@ describe('Settings', () => {
     const options = portalMutate.mock.calls[0][1]
     options.onError(new Error('billing unconfigured'))
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+  })
+
+  describe('password reset', () => {
+    it('renders the password section and reset button', () => {
+      renderSettings()
+      expect(screen.getByText('Password')).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Send password reset link' }),
+      ).toBeInTheDocument()
+    })
+
+    it('sends a reset link to the current user email', () => {
+      const { resetMutate } = renderSettings()
+      fireEvent.click(screen.getByRole('button', { name: 'Send password reset link' }))
+      expect(resetMutate).toHaveBeenCalledWith({ email: 'admin@example.com' }, expect.anything())
+    })
+
+    it('shows a confirmation after the reset email is sent', async () => {
+      const { resetMutate } = renderSettings()
+      fireEvent.click(screen.getByRole('button', { name: 'Send password reset link' }))
+      resetMutate.mock.calls[0][1].onSuccess()
+      await waitFor(() =>
+        expect(screen.getByText(/reset link sent to admin@example\.com/i)).toBeInTheDocument(),
+      )
+    })
+
+    it('shows an error banner when the reset email fails', async () => {
+      const { resetMutate } = renderSettings()
+      fireEvent.click(screen.getByRole('button', { name: 'Send password reset link' }))
+      resetMutate.mock.calls[0][1].onError(new Error('smtp down'))
+      await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    })
   })
 
   describe('document templates', () => {

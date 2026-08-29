@@ -44,6 +44,8 @@ function mockMutation(): any {
   return { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false, isSuccess: false, error: null }
 }
 
+const PASSWORD = 'MediumStr0ng!Pass'
+
 function renderSignup() {
   const mutate = vi.fn()
   const setUser = vi.fn()
@@ -55,6 +57,14 @@ function renderSignup() {
     </MemoryRouter>,
   )
   return { mutate, setUser }
+}
+
+function fillBaseFields() {
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jane Doe' } })
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
+  fireEvent.change(screen.getByLabelText('Law firm name'), {
+    target: { value: 'Doe & Associates' },
+  })
 }
 
 describe('Signup', () => {
@@ -70,6 +80,8 @@ describe('Signup', () => {
     expect(screen.getByLabelText('Name')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Law firm name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Password')).toBeInTheDocument()
+    expect(screen.getByLabelText('Confirm password')).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ })).not.toBeChecked()
     expect(screen.getAllByRole('button', { name: 'Terms & Conditions' }).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument()
@@ -90,24 +102,44 @@ describe('Signup', () => {
 
   it('does not submit until the terms are accepted', async () => {
     const { mutate } = renderSignup()
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jane Doe' } })
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
-    fireEvent.change(screen.getByLabelText('Law firm name'), {
-      target: { value: 'Doe & Associates' },
-    })
+    fillBaseFields()
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: PASSWORD } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: PASSWORD } })
     fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
     await waitFor(() => expect(mutate).not.toHaveBeenCalled())
     expect(screen.getByText('You must agree to the Terms & Conditions to sign up.')).toBeInTheDocument()
   })
 
+  it('blocks submit with a weak password', async () => {
+    const { mutate } = renderSignup()
+    fillBaseFields()
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'weak' } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'weak' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+
+    await waitFor(() => expect(mutate).not.toHaveBeenCalled())
+    expect(screen.getByText(/stronger password/)).toBeInTheDocument()
+  })
+
+  it('blocks submit when passwords do not match', async () => {
+    const { mutate } = renderSignup()
+    fillBaseFields()
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: PASSWORD } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'Different!Pass1' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+
+    await waitFor(() => expect(mutate).not.toHaveBeenCalled())
+    expect(screen.getByText('Passwords do not match.')).toBeInTheDocument()
+  })
+
   it('submits the entered values to the signup mutation', async () => {
     const { mutate } = renderSignup()
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jane Doe' } })
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
-    fireEvent.change(screen.getByLabelText('Law firm name'), {
-      target: { value: 'Doe & Associates' },
-    })
+    fillBaseFields()
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: PASSWORD } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: PASSWORD } })
     fireEvent.click(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
@@ -117,6 +149,7 @@ describe('Signup', () => {
           name: 'Jane Doe',
           email: 'jane@example.com',
           law_firm_name: 'Doe & Associates',
+          password: PASSWORD,
           agree_to_terms: true,
           terms_text: TERMS_TEXT,
         },
@@ -127,11 +160,9 @@ describe('Signup', () => {
 
   it('auto-logs the user in and navigates to the app on success', async () => {
     const { mutate, setUser } = renderSignup()
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jane Doe' } })
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
-    fireEvent.change(screen.getByLabelText('Law firm name'), {
-      target: { value: 'Doe & Associates' },
-    })
+    fillBaseFields()
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: PASSWORD } })
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: PASSWORD } })
     fireEvent.click(screen.getByRole('checkbox', { name: /I agree to the Terms & Conditions/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
