@@ -40,14 +40,21 @@ src/
     bulkImport.ts     useCreateBulkImport + useBulkImportJob (poll-driven bulk import, see below)
     templates.ts      useTemplateCatalog / useTemplatePlaceholders / useUploadTemplate / useDeleteTemplate,
                       templateDownloadUrl / templateGenerateUrl URL builders + triggerDownload helper (see below)
+    support.ts        useSendSupportRequest (authenticated POST /support/ with {message} → {id, detail})
   auth/             AuthContext (user state, login/logout/me/refreshUser), RequireAuth + RedirectIfAuthed
                     guards, RequireSubscription (paywall Outlet guard), subscription helpers
     subscription.ts   isSubscribed(user) + isSubscriptionError(error) + SUBSCRIPTION_INACTIVE_DETAIL
-  components/       Modal, TermsModal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, Footer, forms
+  components/       Modal, TermsModal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, Footer, ContactSupportModal, forms
   Footer.tsx        subtle site-wide footer: "© {currentYear} J Showers Digital Consulting LLC" with the company
                     name linking to https://hire.jshowers.com (new tab) plus an inline "Terms & Conditions" button
                     that opens `TermsModal` in place. Rendered at the bottom of every page (Layout + Login, Signup,
                     and NotFound, all of which use a flex-col min-h-screen shell so the footer sticks to the bottom).
+  ContactSupportModal.tsx
+                    authenticated users' way to email support: a `Modal` with a single large `<textarea>` (label
+                    "How can we help?" + a short description), **Cancel**/**Send** buttons, an inline success
+                    confirmation view with a **Done** button after sending, and an `ErrorBanner` on failure. Backed
+                    by `useSendSupportRequest()` (`src/api/support.ts`). Opened from the **Contact support** header
+                    link in `Layout.tsx` — a text button rendered only when `user` is set (next to the username).
   bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
   password.ts       validatePassword() — shared signup/reset password rule ("medium complexity or
                     higher": ≥8 chars AND ≥2 of 4 classes — lowercase, uppercase, digit, symbol) +
@@ -185,6 +192,11 @@ fail-closed, checks `success` + `action` + hostname allowlist) and is wired into
 | POST   | `/api/billing/checkout/` | authenticated; creates a Stripe Checkout Session for the user's group subscription and returns `{checkout_url, session_id}`; 400 `{"detail": "..."}` on no groups / billing unconfigured / Stripe error. **Not** subscription-gated — it is how an unsubscribed user pays. |
 | POST   | `/api/billing/portal/`   | authenticated; creates a Stripe Customer Portal session for the user's group and returns `{url}` (self-service manage/cancel subscription, payment methods, invoices). 400 `{"detail": "..."}` on no groups / no Stripe customer / unconfigured / Stripe error. **Not** subscription-gated — an unsubscribed user may still need it to re-subscribe or fix payment. |
 | POST   | `/api/stripe/webhook/`   | unauthenticated, signature-verified; Stripe server-to-server only. Flips `is_subscribed` on `checkout.session.completed` + subscription lifecycle events. The front-end never calls it. |
+
+### Support (authenticated)
+| Method | Path            | Body      | Notes |
+| ------ | --------------- | --------- | ----- |
+| POST   | `/api/support/` | `{message}` | authenticated (**not** subscription-gated, so unsubscribed users can reach it); persists the request in the DB and emails jasper@jshowers.com with the firm name, account name, email and message (subject `Support requested for - <name>, <law firm name>`). Returns **201** `{id, detail}`; 400 field-keyed `{"message": [...]}` on missing/blank/oversized input; 401 unauthenticated. Driven by `useSendSupportRequest()` in `src/api/support.ts`, wired to the **Contact support** header link in `Layout.tsx` via `src/components/ContactSupportModal.tsx`. |
 
 ### Subscription gating (paywall)
 
@@ -441,6 +453,15 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 - `src/pages/OffenderList.test.tsx` (bulk-import cases) — the "Bulk follow" header
   button opens the bulk import modal. The test file mocks `../api/bulkImport` so the
   modal renders without a real poll.
+- `src/components/ContactSupportModal.test.tsx` — renders the "How can we help?" textarea
+  with Cancel/Send; Cancel closes; Send fires `useSendSupportRequest` with the trimmed
+  message (and does nothing for a blank one); success swaps to the "Message sent"
+  confirmation whose Done closes the modal; failure renders an error banner; the Send
+  button is disabled and shows "Sending…" while pending.
+- `src/pages/Layout.test.tsx` — the "Contact support" header link renders (next to the
+  username) for an authenticated user, is hidden when `user` is null, and clicking it
+  opens the contact support modal (`../components/ContactSupportModal` mocked to a stub;
+  `../auth/AuthContext` mocked).
 
 ## Deploy
 

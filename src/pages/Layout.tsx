@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { ContactSupportModal } from '../components/ContactSupportModal'
 import Footer from '../components/Footer'
 import { buttonSecondaryClass, cn } from '../utils'
 
@@ -10,6 +12,7 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [supportOpen, setSupportOpen] = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -33,6 +36,15 @@ export default function Layout() {
           </div>
           <div className="flex items-center gap-3">
             {user && <span className="hidden text-sm text-gray-500 sm:inline">{user.username}</span>}
+            {user && (
+              <button
+                type="button"
+                onClick={() => setSupportOpen(true)}
+                className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                Contact support
+              </button>
+            )}
             <button type="button" onClick={handleLogout} className={buttonSecondaryClass}>
               Log out
             </button>
@@ -43,6 +55,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
+      {supportOpen && <ContactSupportModal onClose={() => setSupportOpen(false)} />}
     </div>
   )
 }
