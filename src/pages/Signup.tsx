@@ -115,8 +115,24 @@ export default function Signup() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <ErrorBanner message={error} />}
             <div>
+              <label htmlFor="lawFirmName" className={fieldLabelClass}>
+                Law firm name
+              </label>
+              <input
+                id="lawFirmName"
+                name="law_firm_name"
+                type="text"
+                value={lawFirmName}
+                onChange={(event) => setLawFirmName(event.target.value)}
+                required
+                autoComplete="organization"
+                autoFocus
+                className={inputClass}
+              />
+            </div>
+            <div>
               <label htmlFor="name" className={fieldLabelClass}>
-                Name
+                Your name
               </label>
               <input
                 id="name"
@@ -126,7 +142,6 @@ export default function Signup() {
                 onChange={(event) => setName(event.target.value)}
                 required
                 autoComplete="name"
-                autoFocus
                 className={inputClass}
               />
             </div>
@@ -142,21 +157,6 @@ export default function Signup() {
                 onChange={(event) => setEmail(event.target.value)}
                 required
                 autoComplete="email"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label htmlFor="lawFirmName" className={fieldLabelClass}>
-                Law firm name
-              </label>
-              <input
-                id="lawFirmName"
-                name="law_firm_name"
-                type="text"
-                value={lawFirmName}
-                onChange={(event) => setLawFirmName(event.target.value)}
-                required
-                autoComplete="organization"
                 className={inputClass}
               />
             </div>

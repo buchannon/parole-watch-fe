@@ -60,11 +60,11 @@ function renderSignup() {
 }
 
 function fillBaseFields() {
-  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jane Doe' } })
-  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
   fireEvent.change(screen.getByLabelText('Law firm name'), {
     target: { value: 'Doe & Associates' },
   })
+  fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Jane Doe' } })
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'jane@example.com' } })
 }
 
 describe('Signup', () => {
@@ -77,7 +77,7 @@ describe('Signup', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(4)
     expect(screen.getByAltText('Texas flag')).toHaveAttribute('src', '/flags/tx.svg')
     expect(screen.getByText('Texas')).toBeInTheDocument()
-    expect(screen.getByLabelText('Name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Your name')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Law firm name')).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toBeInTheDocument()
@@ -90,11 +90,11 @@ describe('Signup', () => {
 
   it('opens the terms modal from the checkbox without losing the form', async () => {
     renderSignup()
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jane Doe' } })
+    fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Jane Doe' } })
     fireEvent.click(screen.getAllByRole('button', { name: 'Terms & Conditions' })[0])
 
     expect(screen.getByRole('dialog', { name: 'Parole Watch Terms & Conditions' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Name')).toHaveValue('Jane Doe')
+    expect(screen.getByLabelText('Your name')).toHaveValue('Jane Doe')
 
     fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
