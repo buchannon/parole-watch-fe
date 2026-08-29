@@ -158,21 +158,26 @@ login and signup). Done automatically by the axios request interceptor in `src/a
 
 ### Turnstile anti-spam
 
-Login and Signup render `src/components/Turnstile.tsx` — an invisible Cloudflare
-Turnstile widget (non-interactive `execution: 'execute'`) that lazily loads
-`challenges.cloudflare.com`'s script and exposes an `execute()` imperative handle
-returning the token. The sitekey comes from `VITE_TURNSTILE_SITEKEY` (baked in at
+Login, Signup, Forgot Password, Reset Password, and the Settings page's
+"Send password reset link" button render `src/components/Turnstile.tsx` — an
+invisible Cloudflare Turnstile widget (non-interactive `execution: 'execute'`)
+that lazily loads `challenges.cloudflare.com`'s script and exposes an
+`execute()` imperative handle returning the token. The sitekey comes from
+`VITE_TURNSTILE_SITEKEY` (baked in at
 build time via the deploy workflow's `Build` step secret; unset locally means the
 widget is skipped entirely and forms submit without a token). Each form passes a
 stable `action` to the widget (`login` on the Login page, `signup` on the Signup
-page) which the backend requires back from siteverify. The token is sent as
-`cf_turnstile_response` in the login/signup POST body. The component degrades
+page, `password_reset` on the Forgot Password / Reset Password pages **and the
+Settings page reset button**) which the backend requires back from siteverify.
+The token is sent as
+`cf_turnstile_response` in the login/signup POST body (and the
+password-reset request/confirm bodies). The component degrades
 gracefully when the script is blocked (empty token, form still submits) — the
 backend only enforces verification when its `TURNSTILE_SECRET_KEY` env var is set,
 so dev/test flows are unchanged. Backend verification lives in
 `parole-watch-api`'s `parole_watch/utils/turnstile.py` (`verify_turnstile`,
 fail-closed, checks `success` + `action` + hostname allowlist) and is wired into
-`LoginView` and `SignupView`.
+`LoginView`, `SignupView`, and both password-reset views.
 
 ### Billing (Stripe subscription)
 | Method | Path                     | Notes |

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { isSubscribed } from '../auth/subscription'
 import { useUpdateSettings } from '../api/auth'
@@ -7,18 +7,23 @@ import { useRequestPasswordReset } from '../api/passwordReset'
 import { DocumentTemplates } from '../components/DocumentTemplates'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { Spinner } from '../components/Spinner'
+import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 import { getState } from '../states'
 import { buttonPrimaryClass, cn, extractErrorMessage } from '../utils'
 import type { UserSettings } from '../types'
+
+const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY
 
 export default function Settings() {
   const { user, isLoading, setUser } = useAuth()
   const updateSettings = useUpdateSettings()
   const billingPortal = useCreateBillingPortalSession()
   const resetPassword = useRequestPasswordReset()
+  const turnstileRef = useRef<TurnstileHandle>(null)
   const [billingError, setBillingError] = useState<string | null>(null)
   const [passwordSent, setPasswordSent] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [turnstileFailed, setTurnstileFailed] = useState(false)
 
   if (isLoading) return <Spinner label="Loading settings…" />
   if (!user) return null
@@ -49,12 +54,13 @@ export default function Settings() {
     })
   }
 
-  const handleSendPasswordReset = () => {
+  const handleSendPasswordReset = async () => {
     if (!user?.email) return
     setPasswordSent(false)
     setPasswordError(null)
+    const token = TURNSTILE_SITEKEY ? (await turnstileRef.current?.execute()) ?? '' : ''
     resetPassword.mutate(
-      { email: user.email },
+      { email: user.email, ...(token ? { cf_turnstile_response: token } : {}) },
       {
         onSuccess: () => setPasswordSent(true),
         onError: (err) =>
@@ -133,6 +139,11 @@ export default function Settings() {
             <ErrorBanner message={passwordError} onDismiss={() => setPasswordError(null)} />
           </div>
         )}
+        {turnstileFailed && (
+          <p className="mt-2 text-xs text-red-600">
+            Security verification unavailable. Please try again.
+          </p>
+        )}
         {passwordSent && (
           <div className="mt-3 rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-gray-700">
             Reset link sent to {user.email}. Check your inbox.
@@ -146,6 +157,16 @@ export default function Settings() {
         >
           {resetPassword.isPending ? 'Sending link…' : 'Send password reset link'}
         </button>
+        {TURNSTILE_SITEKEY && (
+          <div className="mt-3">
+            <Turnstile
+              ref={turnstileRef}
+              sitekey={TURNSTILE_SITEKEY}
+              action="password_reset"
+              onError={() => setTurnstileFailed(true)}
+            />
+          </div>
+        )}
       </section>
 
       <DocumentTemplates />

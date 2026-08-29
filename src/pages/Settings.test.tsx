@@ -26,6 +26,10 @@ vi.mock('../api/passwordReset', () => ({
   useRequestPasswordReset: vi.fn(),
 }))
 
+vi.mock('../components/Turnstile', () => ({
+  Turnstile: () => <div data-testid="turnstile" />,
+}))
+
 vi.mock('../api/templates', () => ({
   useTemplateCatalog: vi.fn(),
   useTemplatePlaceholders: vi.fn(),
@@ -299,17 +303,21 @@ describe('Settings', () => {
       expect(
         screen.getByRole('button', { name: 'Send password reset link' }),
       ).toBeInTheDocument()
+      expect(screen.getByTestId('turnstile')).toBeInTheDocument()
     })
 
-    it('sends a reset link to the current user email', () => {
+    it('sends a reset link to the current user email', async () => {
       const { resetMutate } = renderSettings()
       fireEvent.click(screen.getByRole('button', { name: 'Send password reset link' }))
-      expect(resetMutate).toHaveBeenCalledWith({ email: 'admin@example.com' }, expect.anything())
+      await waitFor(() =>
+        expect(resetMutate).toHaveBeenCalledWith({ email: 'admin@example.com' }, expect.anything()),
+      )
     })
 
     it('shows a confirmation after the reset email is sent', async () => {
       const { resetMutate } = renderSettings()
       fireEvent.click(screen.getByRole('button', { name: 'Send password reset link' }))
+      await waitFor(() => expect(resetMutate).toHaveBeenCalled())
       resetMutate.mock.calls[0][1].onSuccess()
       await waitFor(() =>
         expect(screen.getByText(/reset link sent to admin@example\.com/i)).toBeInTheDocument(),
@@ -319,6 +327,7 @@ describe('Settings', () => {
     it('shows an error banner when the reset email fails', async () => {
       const { resetMutate } = renderSettings()
       fireEvent.click(screen.getByRole('button', { name: 'Send password reset link' }))
+      await waitFor(() => expect(resetMutate).toHaveBeenCalled())
       resetMutate.mock.calls[0][1].onError(new Error('smtp down'))
       await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     })
