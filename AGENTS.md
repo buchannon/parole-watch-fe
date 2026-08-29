@@ -47,14 +47,16 @@ src/
   components/       Modal, TermsModal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, Footer, ContactSupportModal, forms
   Footer.tsx        subtle site-wide footer: "© {currentYear} J Showers Digital Consulting LLC" with the company
                     name linking to https://hire.jshowers.com (new tab) plus an inline "Terms & Conditions" button
-                    that opens `TermsModal` in place. Rendered at the bottom of every page (Layout + Login, Signup,
+                    that opens `TermsModal` in place and — only when `user` is set (`useAuth()`) — a "Get support"
+                    button that opens `ContactSupportModal` (so the support entry point is hidden on the public
+                    Login/Signup/NotFound pages). Rendered at the bottom of every page (Layout + Login, Signup,
                     and NotFound, all of which use a flex-col min-h-screen shell so the footer sticks to the bottom).
   ContactSupportModal.tsx
                     authenticated users' way to email support: a `Modal` with a single large `<textarea>` (label
                     "How can we help?" + a short description), **Cancel**/**Send** buttons, an inline success
                     confirmation view with a **Done** button after sending, and an `ErrorBanner` on failure. Backed
-                    by `useSendSupportRequest()` (`src/api/support.ts`). Opened from the **Contact support** header
-                    link in `Layout.tsx` — a text button rendered only when `user` is set (next to the username).
+                    by `useSendSupportRequest()` (`src/api/support.ts`). Opened from the **Get support** footer
+                    link in `Footer.tsx` — a subtle text button rendered only when `user` is set.
   bulkImport.ts     parseTdcjList() — loose-list → {valid, dropped} TDCJ number parser (8 digits only)
   password.ts       validatePassword() — shared signup/reset password rule ("medium complexity or
                     higher": ≥8 chars AND ≥2 of 4 classes — lowercase, uppercase, digit, symbol) +
@@ -196,7 +198,7 @@ fail-closed, checks `success` + `action` + hostname allowlist) and is wired into
 ### Support (authenticated)
 | Method | Path            | Body      | Notes |
 | ------ | --------------- | --------- | ----- |
-| POST   | `/api/support/` | `{message}` | authenticated (**not** subscription-gated, so unsubscribed users can reach it); persists the request in the DB and emails jasper@jshowers.com with the firm name, account name, email and message (subject `Support requested for - <name>, <law firm name>`). Returns **201** `{id, detail}`; 400 field-keyed `{"message": [...]}` on missing/blank/oversized input; 401 unauthenticated. Driven by `useSendSupportRequest()` in `src/api/support.ts`, wired to the **Contact support** header link in `Layout.tsx` via `src/components/ContactSupportModal.tsx`. |
+| POST   | `/api/support/` | `{message}` | authenticated (**not** subscription-gated, so unsubscribed users can reach it); persists the request in the DB and emails jasper@jshowers.com with the firm name, account name, email and message (subject `Support requested for - <name>, <law firm name>`; `Reply-To` set to the requesting user's email). Returns **201** `{id, detail}`; 400 field-keyed `{"message": [...]}` on missing/blank/oversized input; 401 unauthenticated. Driven by `useSendSupportRequest()` in `src/api/support.ts`, wired to the **Get support** footer link in `Footer.tsx` via `src/components/ContactSupportModal.tsx`. |
 
 ### Subscription gating (paywall)
 
@@ -443,7 +445,9 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   order, blank input → empty.
 - `src/components/Footer.test.tsx` — renders the current-year copyright and a
   `hire.jshowers.com` link (target `_blank`, rel `noopener noreferrer`), and the inline
-  "Terms & Conditions" button opens/closes the `TermsModal`.
+  "Terms & Conditions" button opens/closes the `TermsModal`. With `../auth/AuthContext`
+  and `./ContactSupportModal` mocked, the "Get support" link renders for an authenticated
+  user, is hidden when `user` is null, and opens the contact support modal on click.
 - `src/components/BulkImportModal.test.tsx` — live valid/dropped count while typing,
   Continue disabled with no valid numbers, the confirmation step lists the numbers,
   "Import N" fires `useCreateBulkImport` with the validated list, progress renders
@@ -458,10 +462,9 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
   message (and does nothing for a blank one); success swaps to the "Message sent"
   confirmation whose Done closes the modal; failure renders an error banner; the Send
   button is disabled and shows "Sending…" while pending.
-- `src/pages/Layout.test.tsx` — the "Contact support" header link renders (next to the
-  username) for an authenticated user, is hidden when `user` is null, and clicking it
-  opens the contact support modal (`../components/ContactSupportModal` mocked to a stub;
-  `../auth/AuthContext` mocked).
+- `src/pages/Layout.test.tsx` — renders the authenticated header (username + Log out) and
+  hides the username when `user` is null (`../auth/AuthContext` mocked). The "Get support"
+  footer link is covered by `Footer.test.tsx`.
 
 ## Deploy
 

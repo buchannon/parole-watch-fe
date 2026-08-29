@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as passwordResetApi from '../api/passwordReset'
+import { AuthContext, type AuthContextValue } from '../auth/AuthContext'
 import ForgotPassword from './ForgotPassword'
 
 vi.mock('../api/passwordReset', () => ({
@@ -18,13 +19,28 @@ function mockMutation(): any {
   return { mutate: vi.fn(), isPending: false }
 }
 
+function authValue(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
+  return {
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+    login: vi.fn(),
+    logout: vi.fn(),
+    setUser: vi.fn(),
+    refreshUser: vi.fn(),
+    ...overrides,
+  }
+}
+
 function renderForgotPassword() {
   const mutate = vi.fn()
   mockUseRequestPasswordReset.mockReturnValue({ ...mockMutation(), mutate })
   render(
-    <MemoryRouter>
-      <ForgotPassword />
-    </MemoryRouter>,
+    <AuthContext.Provider value={authValue()}>
+      <MemoryRouter>
+        <ForgotPassword />
+      </MemoryRouter>
+    </AuthContext.Provider>,
   )
   return { mutate }
 }
