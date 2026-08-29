@@ -90,31 +90,6 @@ export default function Settings() {
         )}
       </section>
 
-      {isSubscribed(user) && (
-        <section className="rounded-lg border border-gray-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-gray-700">Subscription</h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Manage your plan, payment method, invoices, or cancel your subscription.
-          </p>
-          {billingError && (
-            <div className="mt-3">
-              <ErrorBanner message={billingError} onDismiss={() => setBillingError(null)} />
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={handleManageSubscription}
-            disabled={billingPortal.isPending}
-            className={`${buttonPrimaryClass} mt-3`}
-          >
-            {billingPortal.isPending ? 'Opening billing…' : 'Manage subscription & billing'}
-          </button>
-          <p className="mt-2 text-xs text-gray-500">
-            Billing is handled securely by Stripe. You will be returned here when you are done.
-          </p>
-        </section>
-      )}
-
       <section className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-gray-700">Your account</h2>
         <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
@@ -128,48 +103,6 @@ export default function Settings() {
           </div>
         </dl>
       </section>
-
-      <section className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-gray-700">Password</h2>
-        <p className="mt-2 text-sm text-gray-500">
-          Reset your password via email. You will receive an expiring link to choose a new one.
-        </p>
-        {passwordError && (
-          <div className="mt-3">
-            <ErrorBanner message={passwordError} onDismiss={() => setPasswordError(null)} />
-          </div>
-        )}
-        {turnstileFailed && (
-          <p className="mt-2 text-xs text-red-600">
-            Security verification unavailable. Please try again.
-          </p>
-        )}
-        {passwordSent && (
-          <div className="mt-3 rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-gray-700">
-            Reset link sent to {user.email}. Check your inbox.
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={handleSendPasswordReset}
-          disabled={resetPassword.isPending}
-          className={`${buttonPrimaryClass} mt-3`}
-        >
-          {resetPassword.isPending ? 'Sending link…' : 'Send password reset link'}
-        </button>
-        {TURNSTILE_SITEKEY && (
-          <div className="mt-3">
-            <Turnstile
-              ref={turnstileRef}
-              sitekey={TURNSTILE_SITEKEY}
-              action="password_reset"
-              onError={() => setTurnstileFailed(true)}
-            />
-          </div>
-        )}
-      </section>
-
-      <DocumentTemplates />
 
       <section className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-gray-700">Email alerts</h2>
@@ -222,6 +155,73 @@ export default function Settings() {
           </div>
         </div>
       </section>
+
+      <DocumentTemplates />
+
+      <section className="rounded-lg border border-gray-200 bg-white p-4">
+        <h2 className="text-sm font-semibold text-gray-700">Password</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Reset your password via email. You will receive an expiring link to choose a new one.
+        </p>
+        {passwordError && (
+          <div className="mt-3">
+            <ErrorBanner message={passwordError} onDismiss={() => setPasswordError(null)} />
+          </div>
+        )}
+        {turnstileFailed && (
+          <p className="mt-2 text-xs text-red-600">
+            Security verification unavailable. Please try again.
+          </p>
+        )}
+        {passwordSent && (
+          <div className="mt-3 rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-gray-700">
+            Reset link sent to {user.email}. Check your inbox.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={handleSendPasswordReset}
+          disabled={resetPassword.isPending}
+          className={`${buttonPrimaryClass} mt-3`}
+        >
+          {resetPassword.isPending ? 'Sending link…' : 'Send password reset link'}
+        </button>
+        {TURNSTILE_SITEKEY && (
+          <div className="mt-3">
+            <Turnstile
+              ref={turnstileRef}
+              sitekey={TURNSTILE_SITEKEY}
+              action="password_reset"
+              onError={() => setTurnstileFailed(true)}
+            />
+          </div>
+        )}
+      </section>
+
+      {isSubscribed(user) && (
+        <section className="rounded-lg border border-gray-200 bg-white p-4">
+          <h2 className="text-sm font-semibold text-gray-700">Subscription</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            Manage your plan, payment method, invoices, or cancel your subscription.
+          </p>
+          {billingError && (
+            <div className="mt-3">
+              <ErrorBanner message={billingError} onDismiss={() => setBillingError(null)} />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleManageSubscription}
+            disabled={billingPortal.isPending}
+            className={`${buttonPrimaryClass} mt-3`}
+          >
+            {billingPortal.isPending ? 'Opening billing…' : 'Manage subscription & billing'}
+          </button>
+          <p className="mt-2 text-xs text-gray-500">
+            Billing is handled securely by Stripe. You will be returned here when you are done.
+          </p>
+        </section>
+      )}
     </div>
   )
 }
