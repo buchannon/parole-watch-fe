@@ -44,7 +44,7 @@ src/
   auth/             AuthContext (user state, login/logout/me/refreshUser), RequireAuth + RedirectIfAuthed
                     guards, RequireSubscription (paywall Outlet guard), subscription helpers
     subscription.ts   isSubscribed(user) + isSubscriptionError(error) + SUBSCRIPTION_INACTIVE_DETAIL
-  components/       Modal, TermsModal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, Footer, ContactSupportModal, forms
+  components/       Modal, TermsModal, StatusBadge, DataTable, RowActionsMenu, ErrorBanner, Spinner, EmptyState, ErrorBoundary, Turnstile, Footer, MaintenanceScreen, ContactSupportModal, forms
   Footer.tsx        subtle site-wide footer: "© {currentYear} J Showers Digital Consulting LLC" with the company
                     name linking to https://hire.jshowers.com (new tab) plus an inline "Terms & Conditions" button
                     that opens `TermsModal` in place and — only when `user` is set (`useAuth()`) — a "Get support"
@@ -67,10 +67,14 @@ src/
                     agreed to)
   pages/            Login, Signup, ForgotPassword, ResetPassword, Paywall, OffenderList, OffenderDetail, Settings, NotFound
   router.tsx        route definitions
+  maintenance.ts    `MAINTENANCE_MODE` flag — when `true`, `App.tsx` renders `MaintenanceScreen` instead of the
+                    whole app tree (no QueryClient/BrowserRouter/AuthProvider → zero API calls, no login/routes).
+                    Flip to `false` + redeploy to restore the site.
   states.ts         US state code → {name, flag} map (`US_STATES`) + `getState()`
   types.ts          TS interfaces mirroring the API payloads
   utils.ts          classnames helper, date/status formatters, error extraction
-  App.tsx           QueryClientProvider + BrowserRouter + AuthProvider
+  App.tsx           QueryClientProvider + BrowserRouter + AuthProvider; short-circuits to MaintenanceScreen
+                    when MAINTENANCE_MODE is true
   main.tsx          entry (ReactDOM + ErrorBoundary)
 public/flags/       Vendored US state flag SVGs (`<code>.svg`, Wikimedia Commons) served at `/flags/<code>.svg`
 ```
@@ -391,6 +395,9 @@ DRF-style: `{"field_name": ["message"]}`; 401 for unauthenticated. Use
 
 ## Tests
 
+- `src/components/MaintenanceScreen.test.tsx` — renders the maintenance message, contains no
+  forms/inputs/navigation links, and shows the slim footer whose "Terms & Conditions" button
+  opens the TermsModal in place.
 - `src/auth/RequireAuth.test.tsx` — guard redirects unauthenticated users to `/login`,
   renders children when authenticated; `RequireSubscription` renders children when the group is
   subscribed and the paywall when not.

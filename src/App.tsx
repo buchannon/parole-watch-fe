@@ -4,6 +4,8 @@ import { BrowserRouter, useNavigate } from 'react-router-dom'
 import { setUnauthorizedHandler } from './api/client'
 import { logWarn } from './api/logger'
 import { AuthProvider, useAuth } from './auth/AuthContext'
+import MaintenanceScreen from './components/MaintenanceScreen'
+import { MAINTENANCE_MODE } from './maintenance'
 import { AppRoutes } from './router'
 
 const queryClient = new QueryClient({
@@ -35,6 +37,10 @@ function UnauthorizedWatcher() {
 }
 
 export default function App() {
+  if (MAINTENANCE_MODE) {
+    return <MaintenanceScreen />
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
